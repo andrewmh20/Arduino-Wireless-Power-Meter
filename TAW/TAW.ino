@@ -27,9 +27,9 @@ void loop()
     i = c++;
   }
  
-Serial.println(a[i]);
+Serial.println(a[i], HEX);
 
-delay(10000);
+//delay(1000);
 
 }
 
