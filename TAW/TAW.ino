@@ -14,7 +14,7 @@ xbee.begin(9600);
 void loop()
 {
 
-  int N = 12;
+  int N = 68;
   int a[N];
   
   int i = 0;
@@ -24,13 +24,15 @@ void loop()
    
     c = xbee.read();
     a[i] = c;
-    i = c++;
+    i = i++;
   }
  
-Serial.println(a[i], HEX);
-
-//delay(1000);
-
+ 
+for (i=0; i < N; i++){
+  Serial.println(a[i]);
+  
 }
+
+  }
 
 
