@@ -13,11 +13,13 @@ xbee.begin(9600);
 
 void loop()
 {
-    if(xbee.read() == 0x7E){
-Serial.println("DATA ACQUIRED");
+  
+  char c = xbee.read();
+    if(c == 0x7E){
+Serial.println("SOH");
     }
 else {
-  Serial.println("Another yummy byte received");
+  Serial.println(c, HEX);
 }
 }
       
