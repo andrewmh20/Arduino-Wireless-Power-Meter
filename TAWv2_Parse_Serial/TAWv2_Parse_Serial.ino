@@ -55,7 +55,7 @@ void loop() {
              }
              
              
-        //Print each byte of the array (for debuggig)
+        //Print each byte of the array (for debugging)
         for (i=0; i<length; i++) {
         Serial.println(a[i]);
         }
@@ -121,7 +121,7 @@ void loop() {
            int ADC0[19];
            int ADC1[19];
            
-           //In the future id more ADC sensors are added: 
+           //In the future if more ADC sensors are added: 
            //int ADC2[19]; etc.
            
            //!!!!!I am not processing digital data!!!!!!
@@ -140,6 +140,11 @@ void loop() {
                //so that for the next loop t can be the starting place of the next sample 
                t = t + bytes_per_sample;  
             }
+
+          //Print each byte of the array (for debugging)
+          for (t=0; t<length; t++) {
+              Serial.println(a[t]);
+          }
         }
         
         //If 0x7E was not recieved print this (for debugging)
