@@ -43,12 +43,32 @@ while(!xbee.available());
     i++;
 }
 //Print each byte of the array
-  for (i=0; i<length; i++){
-   //Serial.println(a[i]);
-  
+ // for (i=0; i<length; i++){
+  // Serial.println(a[i]);
+  //}
 //Continue reading data from the 0x83 byte
-if (a[3] == 0x83) {
-Serial.println(a[3], HEX);
+if (a[0] == 0xFFFFFF83) {
+  Serial.println("SOH2");
+    int addrMSB = a[1];
+    int addrLSB = a[2];
+    int address_16 = (addrMSB << 8) + addrLSB;
+    Serial.println(address_16);
+   
+   //Check if this is correct???!!!
+   int RSSI = a[3];
+   Serial.println(RSSI);
+   int address_broadcast = ((a[4] >> 1) & 0x01) == 1;
+   Serial.println(address_broadcast);
+   int pan_broadcast = ((a[4] >> 2) & 0x01) == 1;
+   Serial.println(pan_broadcast);
+   int total_samples = a[5];
+   Serial.println(total_samples);
+   int channel_indicator_high = a[6];
+   Serial.println(channel_indicator_high);
+   int channel_indicator_low = a[7];
+   Serial.println(channel_indicator_low);
+   //int local_checksum = //what goes here????
+   //Put in checksum info
 
 }
 }
@@ -57,7 +77,7 @@ Serial.println(a[3], HEX);
  //and putting them into a new int array,
  //Do I need to find 0x83 and treat as new packet, or can I just use array a[length]
  //???*******************
-  }
+  
  //If 7E was not found, then no packet was received   
 //    else {
 //      Serial.println("NO DATA RECEIVED");
