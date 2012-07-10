@@ -40,6 +40,11 @@ void loop()
   for (i=0; i < length; i++){
     Serial.println(a[i]);
                             }
+ 
+ //***********Inside "if loop" put instructions for taking bytes from array
+ //and putting them into a new int array,
+ //Do I need to find 0x83 and treat as new packet, or can I just use array a[length]
+ //???*******************
   }
  //If 7E was not found, then no packet was received   
     else {
