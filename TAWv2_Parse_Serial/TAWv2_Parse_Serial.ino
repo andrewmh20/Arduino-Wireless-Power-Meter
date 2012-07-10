@@ -44,8 +44,14 @@ while(!xbee.available());
 }
 //Print each byte of the array
   for (i=0; i<length; i++){
-    Serial.println(a[i], HEX);
-  }
+   //Serial.println(a[i]);
+  
+//Continue reading data from the 0x83 byte
+if (a[3] == 0x83) {
+Serial.println(a[3], HEX);
+
+}
+}
   
  //***********Inside "if loop" put instructions for taking bytes from array
  //and putting them into a new int array,
@@ -56,6 +62,7 @@ while(!xbee.available());
 //    else {
 //      Serial.println("NO DATA RECEIVED");
 //}
+
 
 
 
