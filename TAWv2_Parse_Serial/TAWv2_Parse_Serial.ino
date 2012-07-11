@@ -4,12 +4,14 @@
   uint8_t ssTX = 9;
 
   SoftwareSerial xbee(ssRX, ssTX);
-
-int total_samples;
-           //Make 2 new arrays for ADC pins 0, and 1
-           int ADC0[19]; //Can I make an array length a variable????!!!!
-           int ADC1[19];
-           
+  
+  #define MAX_PACKET_SIZE 110 
+  int total_samples;
+  //Make 2 new arrays for ADC pins 0, and 1
+  int ADC0[19]; //Can I make an array length a variable????!!!!
+  int ADC1[19];
+  int a[MAX_PACKET_SIZE];
+  
 
 void setup() {
     //Start Serial
@@ -20,7 +22,18 @@ void setup() {
 
 void loop() {
   
-    //Define c as a variable to read 1 byte from SoftwareS 
+          xbee_get_packet();
+          xbee_interperet_packet(); //Now because of functions this happens even if 7E was not received
+          //an error would be gotten from first func, and then this func data would be nonsense or none
+          normalize_data(); //each loop should return a new set of calibrated values ready to be calculated to one value per second
+}
+  
+  
+  
+  //TO FOLLOW: Functions to run in main loop
+  
+void xbee_get_packet(){ //!!!!!!!!!Should it be void or something else???
+      //Define c as a variable to read 1 byte from SoftwareS 
     char c = xbee.read(); //!!!!!Is this declaration physically in the right place??????--What about all the other ints,
     //should they go further up? Down?
     
@@ -42,10 +55,7 @@ void loop() {
         //Serial.println(length);
         
         //Define i as an integer equal to 0
-        int i = 0;
-        //Create an array with room for "length" number of values  
-        int a[length];
-        
+        int i = 0;        
         //While i is less than that length,
         while (i<length) {
              //Wait for next byte to come from xbee
@@ -65,6 +75,16 @@ void loop() {
         //Serial.println(a[i]);
         }
         
+     }
+      
+
+        //If 0x7E was not recieved print this (for debugging)
+        else {
+            //Serial.println("You've got a problem with your 0xFFFFFF83 byte!");
+        }
+}
+    
+void xbee_interperet_packet() {
         //If the first byte after the length is 0xFFFFFF83
         if (a[0] == 0xFFFFFF83) {
             //Print "SOH2" (for debugging)
@@ -120,7 +140,7 @@ void loop() {
   
            //Set variable BPS to the number of bytes used per sample=the 2 digital bytes,
            //and the number of analog channels times their 2 bytes
-           int bytes_per_sample = 14; //Is it not always constant?--data gets worse when = 12
+           int bytes_per_sample = 14; //!!!!!!!!!!!!!!!!!!!Is it not always constant?--data gets worse when = 12
            //Set t to the starting place in array a for the actual data after the header
            int t = 8;
 
@@ -136,8 +156,9 @@ void loop() {
                
                //skip over the digital data and use the analog data to put an int at s in each array
                //s (and t) increment at each loop, thus assigning each sample to the next space in the array until it is full
-               ADC0[s] = ((a[t+2] << 8) + a[t+3]);
-               ADC1[s] = ((a[t+4] << 8) + a[t+5]);
+               ADC0[s] = ((a[t+2] << 8) | a[t+3]); //is it | or + or other as per python code?
+               ADC1[s] = ((a[t+4] << 8) | a[t+5]); // see xbee.py, arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208712097
+                    
                 
                //add t (the starting place of the array) to the space taken up by all the bytes in one sample
                //so that for the next loop t can be the starting place of the next sample 
@@ -154,14 +175,11 @@ void loop() {
           Serial.println();
           
           
-       }
+      }
             
-       
-        //If 0x7E was not recieved print this (for debugging)
-        else {
-            //Serial.println("You've got a problem with your 0xFFFFFF83 byte!");
-        }
-    }
+        
+    
+
     
     //If 0xFFFFFF83 was not recieved print this (for debugging)
     else {
@@ -169,8 +187,7 @@ void loop() {
     }
 }
 
-          //Average VOLTS function:
-
+//Get actual data from received numbers function:
 void normalize_data() { //!!!!should this be type void?????
     int max_v = 1024;
     int min_v = 0;
@@ -201,9 +218,9 @@ void normalize_data() { //!!!!should this be type void?????
         ADC1[i] = ADC1[i] / CURRENTNORM;
     }
                 
-
+    //should return arrays with reasonable data, 19 samples
     for (i=0; i<total_samples; i++) {
-        Serial.println(ADC0[i]);
-        Serial.println(ADC1[i]);    
+        //Serial.println(ADC0[i]);
+        //Serial.println(ADC1[i]);    
     }
 }
