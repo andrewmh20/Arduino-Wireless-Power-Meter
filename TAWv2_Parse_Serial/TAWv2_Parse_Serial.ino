@@ -143,7 +143,8 @@ void loop() {
 
           //Print each byte of the array (for debugging)
           for (t=0; t<length; t++) {
-              Serial.println(a[t]);
+              Serial.println(ADC0[t]);
+              Serial.println(ADC1[t]);
           }
         }
         
