@@ -140,7 +140,7 @@ void xbee_interperet_packet() {
   
            //Set variable BPS to the number of bytes used per sample=the 2 digital bytes,
            //and the number of analog channels times their 2 bytes
-           int bytes_per_sample = 14; //!!!!!!!!!!!!!!!!!!!Is it not always constant?--data gets worse when = 12
+           int bytes_per_sample = 2+ (valid_analog*2); //!!!!!!!!!!!!!!!!!!!Is it not always constant?--data gets worse when = 12
            //Set t to the starting place in array a for the actual data after the header
            int t = 8;
 
@@ -156,8 +156,8 @@ void xbee_interperet_packet() {
                
                //skip over the digital data and use the analog data to put an int at s in each array
                //s (and t) increment at each loop, thus assigning each sample to the next space in the array until it is full
-               ADC0[s] = ((a[t+2] << 8) | a[t+3]); //is it | or + or other as per python code?
-               ADC1[s] = ((a[t+4] << 8) | a[t+5]); // see xbee.py, arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208712097
+               ADC0[s] = ((a[t+2] << 8) + a[t+3]); //is it | or + or other as per python code?
+               ADC1[s] = ((a[t+4] << 8) + a[t+5]); // see xbee.py, arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208712097
                     
                 
                //add t (the starting place of the array) to the space taken up by all the bytes in one sample
