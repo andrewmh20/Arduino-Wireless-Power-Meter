@@ -140,7 +140,7 @@ void xbee_interperet_packet() {
   
            //Set variable BPS to the number of bytes used per sample=the 2 digital bytes,
            //and the number of analog channels times their 2 bytes
-           int bytes_per_sample = 2+ (valid_analog*2); //!!!!!!!!!!!!!!!!!!!Is it not always constant?--data gets worse when = 12
+           int bytes_per_sample = 6; //!!!!!!!!!!!!!!!!!!!Is it not always constant?--data gets worse when = 12
            //Set t to the starting place in array a for the actual data after the header
            int t = 8;
 
