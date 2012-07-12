@@ -23,16 +23,25 @@ void setup() {
 void loop() {
   
           xbee_get_packet();
-          xbee_interperet_packet(); //Now because of functions this happens even if 7E was not received
-          //an error would be gotten from first func, and then this func data would be nonsense or none
-          normalize_data(); //each loop should return a new set of calibrated values ready to be calculated to one value per second
+          if(xbee_get_packet){
+               xbee_interperet_packet;
+          } 
+          
+          if(xbee_interperet_packet){
+               normalize_data(); //each loop should return a new set of calibrated values ready to be calculated to one value per second
+          }
+          
+          //if(xbee_interperet_packet){
+              //!!!DO ALL THE GET 1 FLOAT AND INTERNET SERVER STUFF FUNCTION
+          //}
+
 }
   
   
   
   //TO FOLLOW: Functions to run in main loop
   
-void xbee_get_packet(){ //!!!!!!!!!Should it be void or something else???
+boolean xbee_get_packet(){ //!!!!!!!!!Should it be void or something else???
       //Define c as a variable to read 1 byte from SoftwareS 
     char c = xbee.read(); //!!!!!Is this declaration physically in the right place??????--What about all the other ints,
     //should they go further up? Down?
@@ -74,17 +83,19 @@ void xbee_get_packet(){ //!!!!!!!!!Should it be void or something else???
         for (i=0; i<length; i++) {
         //Serial.println(a[i]);
         }
+        return 1; //!!!!1 or true????!!!
         
      }
       
 
         //If 0x7E was not recieved print this (for debugging)
         else {
+            return 0;
             //Serial.println("You've got a problem with your 0xFFFFFF83 byte!");
         }
 }
     
-void xbee_interperet_packet() {
+boolean xbee_interperet_packet() {
         //If the first byte after the length is 0xFFFFFF83
         if (a[0] == 0xFFFFFF83) {
             //Print "SOH2" (for debugging)
@@ -174,7 +185,7 @@ void xbee_interperet_packet() {
           }
           Serial.println();
           
-          
+          return 1;
       }
             
         
@@ -184,7 +195,8 @@ void xbee_interperet_packet() {
     //If 0xFFFFFF83 was not recieved print this (for debugging)
     else {
         //Serial.println("NO DATA RECEIVED (or just bad data)");
-    }
+        return 0;     
+  }
 }
 
 //Get actual data from received numbers function:
@@ -223,4 +235,6 @@ void normalize_data() { //!!!!should this be type void?????
         //Serial.println(ADC0[i]);
         //Serial.println(ADC1[i]);    
     }
+    
+    
 }
