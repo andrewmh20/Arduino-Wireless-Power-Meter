@@ -23,8 +23,9 @@ void setup() {
 void loop() {
   
           xbee_get_packet();
+          
           if(xbee_get_packet){
-               xbee_interperet_packet;
+               xbee_interperet_packet();
           } 
           
           if(xbee_interperet_packet){
@@ -145,7 +146,7 @@ boolean xbee_interperet_packet() {
                if(analog_channels >> g & 1) { // ==1?????
                    //increase the variable for the number of active analog channels by 1
                    valid_analog++;
-                   //At the end of the loop leaving "channel_count" containing the number of active analog channels
+                   //At the end of the loop leaving "valid_analog" containing the number of active analog channels
                }
            }     
   
@@ -158,24 +159,41 @@ boolean xbee_interperet_packet() {
            //In the future if more ADC sensors are added: 
            //int ADC2[19]; etc.
            
-           //!!!!!I am not processing digital data!!!!!!
+           int dataADC[19];
+          //!!!!!I am not processing digital data!!!!!!
+           int i = 1;
+           for(int n=0; n<19; n++){
+             
+             //if (i = 1) { 
+              // i = 0;
+             //}
+             //if (i = 0) {
+             //  i = 1;
+             //}
+           int dataADCMSB = a[8 + 6 * n * 2 + 0*2];
+           int dataADCLSB = a[8 + 6 * n * 2 + 0*2 + 1];
+            
+           dataADC[n] = ((dataADCMSB << 8) + dataADCLSB);
+           Serial.println(dataADC[n]);
+           }
+          
            
-           
+       
            //!!!!!!!!!!I may need to end up discarding the first sample!!!!!!!
            //Define and set s to 0; as long as it is less than the total number of samples (as defined above),
-           for(int s = 0; s<total_samples; s++){
+           //for(int s = 0; s<total_samples; s++){
                
                //skip over the digital data and use the analog data to put an int at s in each array
                //s (and t) increment at each loop, thus assigning each sample to the next space in the array until it is full
-               ADC0[s] = ((a[t+2] << 8) + a[t+3]); //is it | or + or other as per python code?
-               ADC1[s] = ((a[t+4] << 8) + a[t+5]); // see xbee.py, arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208712097
+             //  ADC0[s] = ((a[t+2] << 8) + a[t+3]); //is it | or + or other as per python code?
+               //ADC1[s] = ((a[t+4] << 8) + a[t+5]); // see xbee.py, arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1208712097
                     
                 
                //add t (the starting place of the array) to the space taken up by all the bytes in one sample
                //so that for the next loop t can be the starting place of the next sample 
-               t = t + bytes_per_sample; 
-               Serial.println(ADC1[s]);
-            }
+               //t = t + bytes_per_sample; 
+               //Serial.println(ADC1[s]);
+           // }
 
           //Print each byte of the array (for debugging)
           int f;
