@@ -204,7 +204,7 @@ boolean xbee_interperet_packet() {
         //  Serial.println();
           //Serial.print("ADC1:");
           for (f=0; f<total_samples; f++) {
-      //        Serial.println(ADC1[f]);
+          //Serial.println(ADC1[f]);
           }
           
         //  Serial.println();
@@ -271,7 +271,7 @@ void normalize_data() { //!!!!should this be type void?????
      //Serial.println();
 
 
-    int vrefcalibration = 523; //for sensor 1
+    int vrefcalibration = 552; //for sensor 1
     //In future add more (array where index is linked to xbee address, 1, 2, 3, etc.)
     float CURRENTNORM = 15.5;
  //   float ampdata[32];
@@ -284,30 +284,35 @@ void normalize_data() { //!!!!should this be type void?????
   }
                 
     //should return arrays with reasonable data, 19 samples
-    Serial.print("Volts:");
+    Serial.print("voltdata:");
     Serial.println();
     for (int i=0; i<total_samples; i++) {
         Serial.println(voltdata[i]);
            
     }
     Serial.println();
-    Serial.print("Amperes:");
+    Serial.print("ampdata:");
    Serial.println();
      for (int i=0; i<total_samples; i++) {
         Serial.println(ampdata[i]);
            
     }
-    
-    for(int i = 0; i<total_samples; i++){
-        wattdata[i] = voltdata[i] * ampdata[i];
-    }
+//    Serial.println();
+//    Serial.print("wattdata:");
+//
+//    for(int i = 0; i<total_samples; i++){
+//        wattdata[i] = voltdata[i] * ampdata[i];
+//        Serial.println(wattdata[i]);
+//       
+//    }
+//    Serial.println();
     
 }
 
 void average_data_per_cycle(){
     //16.6 samples per second
     //So then why do I need 19 samples per packet???
-    float samples_per_second = 17.00;
+    float samples_per_second = 16.6;
     float avgamp = 0;
     for(int i = 0; i<samples_per_second; i++) {
         avgamp += abs(ampdata[i]);
@@ -317,14 +322,19 @@ void average_data_per_cycle(){
     Serial.println(avgamp);
     Serial.println();   
     
-    float avgwatt = 0;
-    for(int i = 0; i<samples_per_second; i++){
-        avgwatt += abs(wattdata[i]);
-    }
-    
-    avgwatt /= 17.00;
+//    float avgwatt = 0;
+//    for(int i = 0; i<samples_per_second; i++){
+//        avgwatt += abs(wattdata[i]);
+//    }
+//    
+//    avgwatt /= samples_per_second;
 
-    Serial.print("VoltageAmps:");
+    //This is what I would try, and seems to work,
+    //but check on amp calcs, and calc RMS in code OR hardcode it???
+    float avgwatt = 123 * avgamp;
+
+
+    Serial.print("Final VoltageAmps:");
     Serial.println(avgwatt);
     Serial.println();
 }
