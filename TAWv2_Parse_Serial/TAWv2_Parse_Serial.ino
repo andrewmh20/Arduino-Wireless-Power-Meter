@@ -12,6 +12,8 @@
   unsigned int ADC0[MAX_SAMPLE_SIZE]; //Can I make an array length a variable????!!!!
   unsigned int ADC1[MAX_SAMPLE_SIZE];
   byte a[MAX_PACKET_SIZE];
+  float ampdata[32];
+  float wattdata[32];
   
 
 void setup() {
@@ -29,6 +31,7 @@ void loop() {
          //   Serial.println("1:");
               if(xbee_interperet_packet()){
                    normalize_data();
+                   average_data_per_cycle();
               }
               else {
               }  
@@ -198,13 +201,13 @@ boolean xbee_interperet_packet() {
 ////          for (f=0; f<total_samples; f++) {
 ////              Serial.println(ADC0[f]);
 ////          }
-          Serial.println();
-          Serial.print("ADC1:");
+        //  Serial.println();
+          //Serial.print("ADC1:");
           for (f=0; f<total_samples; f++) {
-              Serial.println(ADC1[f]);
+      //        Serial.println(ADC1[f]);
           }
           
-          Serial.println();
+        //  Serial.println();
           
           return 1;
       }
@@ -230,7 +233,6 @@ void normalize_data() { //!!!!should this be type void?????
            voltdata[i] = ADC0[i];
        }
        
-       float ampdata[32];
        for(int i = 0; i<total_samples; i++) {
            ampdata[i] = ADC1[i];
        }
@@ -262,11 +264,13 @@ void normalize_data() { //!!!!should this be type void?????
         //Serial.println(voltdata[i]);
 
         voltdata[i] = (voltdata[i] * 170 * 2) / vpp;
-          Serial.println(voltdata[i]);  
-//        Serial.println();  
+        //  Serial.println(voltdata[i]);  
+         // Serial.println();  
 }
-     Serial.println();
-    Serial.println();
+   //  Serial.println();
+     //Serial.println();
+
+
     int vrefcalibration = 523; //for sensor 1
     //In future add more (array where index is linked to xbee address, 1, 2, 3, etc.)
     float CURRENTNORM = 15.5;
@@ -287,12 +291,38 @@ void normalize_data() { //!!!!should this be type void?????
            
     }
     Serial.println();
-    //Serial.print("Amperes:");
-    Serial.println();
-     for ( int i=0; i<total_samples; i++) {
-       // Serial.println(ampdata[i]);
+    Serial.print("Amperes:");
+   Serial.println();
+     for (int i=0; i<total_samples; i++) {
+        Serial.println(ampdata[i]);
            
     }
     
+    for(int i = 0; i<total_samples; i++){
+        wattdata[i] = voltdata[i] * ampdata[i];
+    }
     
+}
+
+void average_data_per_cycle(){
+    float samples_per_second = 17.00; //16.6
+    float avgamp = 0;
+    for(int i = 0; i<samples_per_second; i++) {
+        avgamp += abs(ampdata[i]);
+    }    
+    avgamp /= samples_per_second;
+    Serial.print("Current:");
+    Serial.println(avgamp);
+    Serial.println();   
+    
+    float avgwatt = 0;
+    for(int i = 0; i<samples_per_second; i++){
+        avgwatt += abs(wattdata[i]);
+    }
+    
+    avgwatt /= 17.00;
+
+    Serial.print("VoltageAmps:");
+    Serial.println(avgwatt);
+    Serial.println();
 }
