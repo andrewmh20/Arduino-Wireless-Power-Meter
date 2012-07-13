@@ -305,13 +305,15 @@ void normalize_data() { //!!!!should this be type void?????
 }
 
 void average_data_per_cycle(){
-    float samples_per_second = 17.00; //16.6
+    //16.6 samples per second
+    //So then why do I need 19 samples per packet???
+    float samples_per_second = 17.00;
     float avgamp = 0;
     for(int i = 0; i<samples_per_second; i++) {
         avgamp += abs(ampdata[i]);
     }    
     avgamp /= samples_per_second;
-    Serial.print("Current:");
+    Serial.print("Final Current:");
     Serial.println(avgamp);
     Serial.println();   
     
