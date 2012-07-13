@@ -242,8 +242,8 @@ void normalize_data() { //!!!!should this be type void?????
     
     //Normalize Volts
     
-    int max_v = 1024;
-    int min_v = 0;
+    int max_v = 0;
+    int min_v = 1024;
     
     
     for(int i=0; i<total_samples; i++) {
