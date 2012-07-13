@@ -1,5 +1,5 @@
   #include <SoftwareSerial.h>
-  
+  #include <SD.h>
   
   //I/O 8 is receive, and I/O 9 is transmit
   uint8_t ssRX = 8;
@@ -10,7 +10,7 @@
   
   #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with packet 
   #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
-  #define RMS_VOLTAGE 188.5   //Calibrate with the Volts displayed on Kill-a-Watt
+  #define RMS_VOLTAGE 123   //Calibrate with the Volts displayed on Kill-a-Watt
   #define VREF_CALIBRATION 552 //Calibrate with the data in ampdata[i]
   #define CURRENT_NORM 15.5    //Convert ADC values  to amps
   
@@ -25,31 +25,42 @@
   //Make arrays for the normalized 19 samples of Volts, Amps, and Watts data
   float ampdata[32];
   float voltdata[32];
-  
+  float avgamp;
+  float avgwatt;
+  File taw;
 
 void setup() {
     //Start Hardware Serial
     Serial.begin(9600);
     //Start SoftwareSerial Xbee communications
     xbee.begin(9600);
-    }
+    //Start SD service on pin 4
+    SD.begin(4);
+//    //Remove any previous TAW.txt file
+//    taw.close();
+//    SD.remove("TAW.txt");
+}
 
 void loop() {
     int r;
     //Receive packet
     r = xbee_get_packet();
     //If packet was received, then put the data in nice arrays
-    if(r); {
+    if(r) {
         r = xbee_interpret_packet(); 
     }
     //If the data put in the arrays sucessfully, then normalize the data in the ADC0 and ADC1 arrays
-    if(r); {
+    if(r) {
         r = normalize_data();
     }    
     //If the data was normalized succesfully, then get average values for amps and watts ?????Maybe volts???
-    if(r); {
+    if(r) {
         r = average_data_per_cycle();
     }
+    if(r) {
+      sd_store();
+    }
+    
 //Insert web server stuff
 }
   
@@ -340,7 +351,7 @@ boolean average_data_per_cycle(){
     //There are 16.6 samples per second
     float samples_per_second = 16.6;
     
-    float avgamp = 0;
+    avgamp = 0;
     
     //Calculate the actual amps/cycle by, 
     //Starting at 0, the average amps used per cycle are calculated by adding the absolute value of that iteration in ampdata[] to the previous value,
@@ -353,11 +364,11 @@ boolean average_data_per_cycle(){
     
     //To calculate the watts per cycle,
     //Use P=IV and multiple the calibrated RMS voltage by the averaged amps per cyle
-    float avgwatt = RMS_VOLTAGE * avgamp;
+    avgwatt = RMS_VOLTAGE * avgamp;
     
     //!!!Here watts are not really watts, they are VoltageAmps, which are slightly different; (look it up)
     
-    //Prinfloatt the final current readings, and power readings to serial
+    //Print the final current readings, and power readings to serial
     Serial.print("Final Current: ");
     Serial.println(avgamp);
     Serial.println();   
@@ -365,4 +376,25 @@ boolean average_data_per_cycle(){
     Serial.print("Final VoltageAmps: ");
     Serial.println(avgwatt);
     Serial.println();
+}
+
+//Interface with the SD card
+void sd_store(){
+    //Open (first time create???) TAW.txt and ????set it to be able to write to it???
+    taw = SD.open("TAW.txt", FILE_WRITE);
+    //If the file was succesfully opened, 
+    if(taw) {
+        //Store the current and VA readings in TAW.txt
+        taw.print("Final Current: ");
+        taw.println(avgamp);
+        taw.println();   
+    
+        taw.print("Final VoltageAmps: ");
+        taw.println(avgwatt);
+        taw.println();
+        
+        //Close the TAW file  
+        taw.close();
+    }
+    
 }
