@@ -1,5 +1,7 @@
   #include <SoftwareSerial.h>
   #include <SD.h>
+  #include <SPI.h>
+  #include <Ethernet.h>
   
   //I/O 8 is receive, and I/O 9 is transmit
   uint8_t ssRX = 8;
@@ -27,7 +29,17 @@
   float voltdata[32];
   float avgamp;
   float avgwatt;
+  
   File taw;
+
+  byte mac[] = { 
+  0x90, 0xA2, 0xDA, 0x0D, 0x27, 0x80 };
+IPAddress ip(10, 10, 5, 105);
+
+// Initialize the Ethernet server library
+// with the IP address and port you want to use 
+// (port 80 is default for HTTP):
+EthernetServer server(80);
 
 void setup() {
     //Start Hardware Serial
@@ -39,6 +51,11 @@ void setup() {
 //    //Remove any previous TAW.txt file
 //    taw.close();
 //    SD.remove("TAW.txt");
+
+  Ethernet.begin(mac, ip);
+  server.begin();
+  Serial.print("server is at ");
+  Serial.println(Ethernet.localIP());
 }
 
 void loop() {
@@ -57,10 +74,14 @@ void loop() {
     if(r) {
         r = average_data_per_cycle();
     }
-    if(r) {
-      sd_store();
-    }
     
+    if(r){
+      web_service();
+    }
+//    if(r) {
+//      sd_store();
+//    }
+//    
 //Insert web server stuff
 }
   
@@ -397,4 +418,61 @@ void sd_store(){
         taw.close();
     }
     
+}
+
+
+//Serve the web
+
+void web_service() {
+    EthernetClient client = server.available();
+  if (client) {
+    Serial.println("new client");
+    // an http request ends with a blank line
+    boolean currentLineIsBlank = true;
+    while (client.connected()) {
+      if (client.available()) {
+        char c = client.read();
+        Serial.write(c);
+        // if you've gotten to the end of the line (received a newline
+        // character) and the line is blank, the http request has ended,
+        // so you can send a reply
+        if (c == '\n' && currentLineIsBlank) {
+          // send a standard http response header
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-Type: text/html");
+          client.println("Connnection: close");
+          client.println();
+          client.println("<!DOCTYPE HTML>");
+          client.println("<html>");
+          // add a meta refresh tag, so the browser pulls again every 1 seconds:
+          client.println("<meta http-equiv=\"refresh\" content=\"1\">");
+          
+            
+          client.print("Final Current: ");
+          client.print(avgamp);
+          client.println("<br />");       
+
+          client.print("Final VoltageAmps: ");
+          client.print(avgwatt);
+          client.println("<br />");       
+      
+          client.println("</html>");
+          break;
+        }
+        if (c == '\n') {
+          // you're starting a new line
+          currentLineIsBlank = true;
+        } 
+        else if (c != '\r') {
+          // you've gotten a character on the current line
+          currentLineIsBlank = false;
+        }
+      }
+    }
+    // give the web browser time to receive the data
+    delay(3);
+    // close the connection:
+    client.stop();
+    Serial.println("client disonnected");
+    }
 }
