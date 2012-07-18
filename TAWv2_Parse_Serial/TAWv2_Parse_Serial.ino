@@ -1,21 +1,28 @@
   #include <SoftwareSerial.h>
-  #include <SD.h>
   #include <SPI.h>
   #include <Ethernet.h>
-  
-  //I/O 8 is receive, and I/O 9 is transmit
+  #include <avr/interrupt.h> 
+    
+  //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
   uint8_t ssRX = 8;
   uint8_t ssTX = 9;
   
-  
   SoftwareSerial xbee(ssRX, ssTX);
   
-  #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with packet 
-  #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
-  #define RMS_VOLTAGE 123   //Calibrate with the Volts displayed on Kill-a-Watt
-  #define VREF_CALIBRATION 552 //Calibrate with the data in ampdata[i]
-  #define CURRENT_NORM 15.5    //Convert ADC values  to amps
+  #define APIKEY         "epqIULzyXJ-yn4ZlUq24Pzh4yr2SAKwvMThFM2gxendlQT0g" //Cosm API ID for my feed
+  #define FEEDID         68173 //My Cosm feed ID
+  #define USERAGENT      "Power Meter 1" //My Cosm feed name 
+
   
+  #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with entire packet 
+  #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
+  
+  #define RMS_VOLTAGE 118   //!!!!Calibrate with the Volts displayed on Kill-a-Watt
+  #define VREF_CALIBRATION 552 //!!!!Calibrate with the data in ampdata[i]
+  
+  #define CURRENT_NORM 15.5    //Converts ADC values to amps
+  
+  //Declare the variable for number of samples
   int total_samples;
   //Make array for the whole packet
   byte a[MAX_PACKET_SIZE];
@@ -30,31 +37,35 @@
   float avgamp;
   float avgwatt;
   
-  File taw;
-
   byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x0D, 0x27, 0x80 };
-IPAddress ip(10, 10, 5, 105);
+IPAddress ip(10,10,5,110);
 
 // Initialize the Ethernet server library
 // with the IP address and port you want to use 
 // (port 80 is default for HTTP):
-EthernetServer server(80);
+EthernetClient client;
+IPAddress server(216,52,233,121); 
+
+
+unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
+boolean lastConnected = false;                 // state of the connection last time through the main loop
+const unsigned long postingInterval = 1*1000;  //delay between updates to Cosm.com
+
 
 void setup() {
     //Start Hardware Serial
     Serial.begin(9600);
     //Start SoftwareSerial Xbee communications
     xbee.begin(9600);
-    //Start SD service on pin 4
-    SD.begin(4);
-//    //Remove any previous TAW.txt file
-//    taw.close();
-//    SD.remove("TAW.txt");
 
-  Ethernet.begin(mac, ip);
-  server.begin();
-  Serial.print("server is at ");
+  // start the Ethernet connection:
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("NO DHCP");
+    // DHCP failed, so use a fixed IP address:
+    Ethernet.begin(mac, ip);
+  }
+  Serial.print("client is at ");
   Serial.println(Ethernet.localIP());
 }
 
@@ -76,7 +87,7 @@ void loop() {
     }
     
     if(r){
-      web_service();
+      cosm_send();
     }
 //    if(r) {
 //      sd_store();
@@ -399,80 +410,82 @@ boolean average_data_per_cycle(){
     Serial.println();
 }
 
-//Interface with the SD card
-void sd_store(){
-    //Open (first time create???) TAW.txt and ????set it to be able to write to it???
-    taw = SD.open("TAW.txt", FILE_WRITE);
-    //If the file was succesfully opened, 
-    if(taw) {
-        //Store the current and VA readings in TAW.txt
-        taw.print("Final Current: ");
-        taw.println(avgamp);
-        taw.println();   
-    
-        taw.print("Final VoltageAmps: ");
-        taw.println(avgwatt);
-        taw.println();
-        
-        //Close the TAW file  
-        taw.close();
-    }
-    
-}
 
 
-//Serve the web
-
-void web_service() {
-    EthernetClient client = server.available();
-  if (client) {
-    Serial.println("new client");
-    // an http request ends with a blank line
-    boolean currentLineIsBlank = true;
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();
-        Serial.write(c);
-        // if you've gotten to the end of the line (received a newline
-        // character) and the line is blank, the http request has ended,
-        // so you can send a reply
-        if (c == '\n' && currentLineIsBlank) {
-          // send a standard http response header
-          client.println("HTTP/1.1 200 OK");
-          client.println("Content-Type: text/html");
-          client.println("Connnection: close");
-          client.println();
-          client.println("<!DOCTYPE HTML>");
-          client.println("<html>");
-          // add a meta refresh tag, so the browser pulls again every 1 seconds:
-          client.println("<meta http-equiv=\"refresh\" content=\"1\">");
+void cosm_send() {
+        char C_data[50];
+        String dataString = "Current,";
+        dtostrf(avgamp, 5, 2, C_data);
           
-            
-          client.print("Final Current: ");
-          client.print(avgamp);
-          client.println("<br />");       
+  dataString += String(C_data);
+  // you can append multiple readings to this String if your
+  // Cosm feed is set up to handle multiple values:
+   char P_data[50];
+         dataString += "\nPower,";
+        dtostrf(avgwatt, 5, 2, P_data);
+  dataString += String(P_data);
 
-          client.print("Final VoltageAmps: ");
-          client.print(avgwatt);
-          client.println("<br />");       
-      
-          client.println("</html>");
-          break;
-        }
-        if (c == '\n') {
-          // you're starting a new line
-          currentLineIsBlank = true;
-        } 
-        else if (c != '\r') {
-          // you've gotten a character on the current line
-          currentLineIsBlank = false;
-        }
-      }
-    }
-    // give the web browser time to receive the data
-    delay(3);
-    // close the connection:
+  // if there's incoming data from the net connection.
+  // send it out the serial port.  This is for debugging
+  // purposes only:
+  if (client.available()) {
+    char c = client.read();
+    Serial.print(c);
+  }
+
+  // if there's no net connection, but there was one last time
+  // through the loop, then stop the client:
+  if (!client.connected() && lastConnected) {
+    Serial.println();
+    Serial.println("disconnecting.");
     client.stop();
-    Serial.println("client disonnected");
-    }
+  }
+
+  // if you're not connected, and ten seconds have passed since
+  // your last connection, then connect again and send data: 
+  if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
+    sendData(dataString);
+  }
+  // store the state of the connection for next time through
+  // the loop:
+  lastConnected = client.connected();
 }
+//
+//// this method makes a HTTP connection to the server:
+void sendData(String thisData) {
+  // if there's a successful connection:
+  if (client.connect(server, 80)) {
+    Serial.println("connecting...");
+    // send the HTTP PUT request:
+    client.print("PUT /v2/feeds/");
+    client.print(FEEDID);
+    client.println(".csv HTTP/1.1");
+    client.println("Host: api.cosm.com");
+    client.print("X-ApiKey: ");
+    client.println(APIKEY);
+    client.print("User-Agent: ");
+    client.println(USERAGENT);
+    client.print("Content-Length: ");
+    client.println(thisData.length());
+
+    // last pieces of the HTTP PUT request:
+    client.println("Content-Type: text/csv");
+    client.println("Connection: close");
+    client.println();
+
+    // here's the actual content of the PUT request:
+    client.println(thisData);
+    Serial.println(thisData);
+    client.stop(); //I don't have a clue why I need this, but it doesn't work without it :)
+  } 
+  else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
+    Serial.println();
+    Serial.println("disconnecting.");
+    client.stop();
+  }
+  // note the time that the connection was made or attempted:
+  lastConnectionTime = millis();
+}
+
