@@ -3,7 +3,7 @@
   #include <SPI.h> //Comm to Ethernet stuff
   #include <Ethernet.h> //Ethernet stuff
   #include <avr.h> //Convert floats to string to send to Cosm.com
-      
+  #include <SD.h>
   //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
   uint8_t ssRX = 7;
   uint8_t ssTX = 9;
@@ -54,6 +54,7 @@
   //Declare the last know state of the connection; setup as not connected    
   boolean lastConnected = false;
 
+File TAW1;
 void setup() {
     //Start Hardware Serial
     Serial.begin(9600);
@@ -79,6 +80,13 @@ void setup() {
 //5v 5
 //gnd 3
 
+   pinMode(10, OUTPUT);
+   
+
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  TAW1 = SD.open("TAW_log.csv", FILE_WRITE);
+
 
 }
 
@@ -91,17 +99,17 @@ void loop() {
     //If packet was received, then put the data in nice arrays
     if(r) {
         r = xbee_interpret_packet();
-       Serial.println("Packet Interpreted"); 
+//       Serial.println("Packet Interpreted"); 
     }
     //If the data put in the arrays sucessfully, then normalize the data in the ADC0 and ADC1 arrays
     if(r) {
         r = normalize_data();
-        Serial.println("Data normalized");
+//        Serial.println("Data normalized");
     }    
     //If the data was normalized succesfully, then get average values for amps and watts ?????Maybe volts???
     if(r) {
         r = average_data_per_cycle();
-        Serial.println("Data averaged");
+//        Serial.println("Data averaged");
     }
     //If the data averaged successfully, then push it to Cosm.com
     if(r){
@@ -425,6 +433,11 @@ boolean average_data_per_cycle(){
 //    Serial.println();
 
     if((avgamp < 100) && (avgwatt < 10000)) {
+      TAW1.print("Current, ");
+      TAW1.print(avgamp);
+      TAW1.print("   ");
+      TAW1.print("Power, ");
+      TAW1.print(avgwatt);
         return 1;
     }
     else {
