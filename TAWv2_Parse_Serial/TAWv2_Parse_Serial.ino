@@ -13,6 +13,7 @@
   #define FEEDID         68173 //My Cosm feed ID
   #define USERAGENT      "Power Meter 1" //My Cosm feed name 
 
+  #define postingInterval 1*1000 //Delay between updates to Cosm.com
   
   #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with entire packet 
   #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
@@ -34,24 +35,25 @@
   //Make arrays for the normalized 19 samples of Volts, Amps, and Watts data
   float ampdata[32];
   float voltdata[32];
+  //Declare the variable for the final processed current and power data
   float avgamp;
   float avgwatt;
   
+  //Define the MAC address of the Arduino
   byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x0D, 0x27, 0x80 };
-IPAddress ip(10,10,5,110);
+  //Define the local IP address used by the Arduino if DHCP fails
+  IPAddress ip(10,10,5,110);
 
-// Initialize the Ethernet server library
-// with the IP address and port you want to use 
-// (port 80 is default for HTTP):
-EthernetClient client;
-IPAddress server(216,52,233,121); 
+  //Initialize the Ethernet library, designating the Arduino as a client
+  EthernetClient client;
+  //Declare "server" as the IP address of the server the Arduino will be accessing
+  IPAddress server(216,52,233,121); 
 
-
-unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
-boolean lastConnected = false;                 // state of the connection last time through the main loop
-const unsigned long postingInterval = 1*1000;  //delay between updates to Cosm.com
-
+  //Last time a connection was made to the server, in milliseconds; setup to 0
+  unsigned long lastConnectionTime = 0;   
+  //Declare the last know state of the connection; setup as not connected    
+  boolean lastConnected = false;
 
 void setup() {
     //Start Hardware Serial
@@ -59,19 +61,22 @@ void setup() {
     //Start SoftwareSerial Xbee communications
     xbee.begin(9600);
 
-  // start the Ethernet connection:
+  //Start the Ethernet connection, and if DHCP fails,
   if (Ethernet.begin(mac) == 0) {
-    Serial.println("NO DHCP");
-    // DHCP failed, so use a fixed IP address:
-    Ethernet.begin(mac, ip);
+      Serial.println("DHCP FAILED");
+      //Use a fixed IP address, as determined above
+      Ethernet.begin(mac, ip);
   }
-  Serial.print("client is at ");
+  
+  //Print the obtained IP address (for debugging)
+  Serial.print("Client is at ");
   Serial.println(Ethernet.localIP());
 }
 
 void loop() {
+    //Declare variable r
     int r;
-    //Receive packet
+    //Receive packet, and set r equal to the return of that function (1 if success)
     r = xbee_get_packet();
     //If packet was received, then put the data in nice arrays
     if(r) {
@@ -85,18 +90,14 @@ void loop() {
     if(r) {
         r = average_data_per_cycle();
     }
-    
+    //If the data averaged successfully, then push it to Cosm.com
     if(r){
       cosm_send();
     }
-//    if(r) {
-//      sd_store();
-//    }
-//    
-//Insert web server stuff
 }
   
-   
+
+
 boolean xbee_get_packet(){
     //Wait until a byte becomes available from the xbee
     while(!xbee.available());
@@ -123,7 +124,7 @@ boolean xbee_get_packet(){
 //      Serial.println();
         
 
-        //Set i equalt to 0, and when it is less than that length do the following,
+        //Set i equal to 0, and when it is less than that length do the following,
         for(int i = 0; i < length; i++) {
              //Wait for next byte to come from xbee
              while(!xbee.available());
@@ -151,8 +152,8 @@ boolean xbee_get_packet(){
         //If 0x7E was not recieved print this (for debugging)
         else {
 //          Serial.println("You've got a problem with your 0x7E byte!");
-
-          return 0;
+            //and return 0
+            return 0;
         }
 }
     
@@ -378,13 +379,11 @@ boolean normalize_data() {
 //Now we need to take the normalized arrays, and calculate one value for the amps and watts each cycle
 
 boolean average_data_per_cycle(){
-    
-    
+  
     //There are 16.6 samples per second
     float samples_per_second = 16.6;
-    
+    //Define avgamp as 0    
     avgamp = 0;
-    
     //Calculate the actual amps/cycle by, 
     //Starting at 0, the average amps used per cycle are calculated by adding the absolute value of that iteration in ampdata[] to the previous value,
     for(int i = 0; i < samples_per_second; i++) {
@@ -400,92 +399,90 @@ boolean average_data_per_cycle(){
     
     //!!!Here watts are not really watts, they are VoltageAmps, which are slightly different; (look it up)
     
-    //Print the final current readings, and power readings to serial
-    Serial.print("Final Current: ");
-    Serial.println(avgamp);
-    Serial.println();   
-    
-    Serial.print("Final VoltageAmps: ");
-    Serial.println(avgwatt);
-    Serial.println();
+    //Print the final current readings, and power readings to serial (for debugging)
+//    Serial.print("Final Current: ");
+//    Serial.println(avgamp);
+//    Serial.println();   
+//    
+//    Serial.print("Final VoltageAmps: ");
+//    Serial.println(avgwatt);
+//    Serial.println();
 }
 
 
+//Send the final data to Cosm.com
 
 void cosm_send() {
-        char C_data[50];
-        String dataString = "Current,";
-        dtostrf(avgamp, 5, 2, C_data);
-          
-  dataString += String(C_data);
-  // you can append multiple readings to this String if your
-  // Cosm feed is set up to handle multiple values:
-   char P_data[50];
-         dataString += "\nPower,";
-        dtostrf(avgwatt, 5, 2, P_data);
-  dataString += String(P_data);
+    //Use dtostrf function to convert the float values to strings stored in C_data and P_data, and put them in a string with the labels Cosm expects
+    char C_data[50];
+    String dataString = "Current,";
+    dtostrf(avgamp, 5, 2, C_data);
+    dataString += String(C_data);
+    char P_data[50];
+    dataString += "\nPower,";
+    dtostrf(avgwatt, 5, 2, P_data);
+    dataString += String(P_data);
 
-  // if there's incoming data from the net connection.
-  // send it out the serial port.  This is for debugging
-  // purposes only:
-  if (client.available()) {
-    char c = client.read();
-    Serial.print(c);
-  }
+  //Print any incoming connection information to serial (for debugging, I never used it)
+//    if (client.available()) {
+//    char c = client.read();
+//    Serial.print(c);
+//    }
 
   // if there's no net connection, but there was one last time
-  // through the loop, then stop the client:
-  if (!client.connected() && lastConnected) {
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
-  }
+  // through the loop, then stop the client:                   !!!!!!WHY!?????
+    if (!client.connected() && lastConnected) {
+        Serial.println();
+        Serial.println("disconnecting...");
+        client.stop();
+    }
 
-  // if you're not connected, and ten seconds have passed since
-  // your last connection, then connect again and send data: 
-  if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
-    sendData(dataString);
-  }
-  // store the state of the connection for next time through
-  // the loop:
-  lastConnected = client.connected();
+    //If there is no active connection and the set amount of time has passed since the last connection,
+    // then connect again and run the function that sends the data (below) 
+    if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
+        sendData(dataString);
+    }
+    // store the state of the connection for next time through the loop main
+    lastConnected = client.connected();  //!!!!!!!!!Doesn't this actually try to connect as well?????
 }
-//
-//// this method makes a HTTP connection to the server:
+
+
+//This is the function used above to actually send the data to Cosm.com:
+
+//Have sendData alled with the a string as the argument
 void sendData(String thisData) {
-  // if there's a successful connection:
-  if (client.connect(server, 80)) {
-    Serial.println("connecting...");
-    // send the HTTP PUT request:
-    client.print("PUT /v2/feeds/");
-    client.print(FEEDID);
-    client.println(".csv HTTP/1.1");
-    client.println("Host: api.cosm.com");
-    client.print("X-ApiKey: ");
-    client.println(APIKEY);
-    client.print("User-Agent: ");
-    client.println(USERAGENT);
-    client.print("Content-Length: ");
-    client.println(thisData.length());
-
-    // last pieces of the HTTP PUT request:
-    client.println("Content-Type: text/csv");
-    client.println("Connection: close");
-    client.println();
-
-    // here's the actual content of the PUT request:
-    client.println(thisData);
-    Serial.println(thisData);
-    client.stop(); //I don't have a clue why I need this, but it doesn't work without it :)
-  } 
-  else {
-    // if you couldn't make a connection:
-    Serial.println("connection failed");
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
-  }
-  // note the time that the connection was made or attempted:
-  lastConnectionTime = millis();
+    //If there's a successful connection on port 80 (HTTP),
+    if (client.connect(server, 80)) {
+        //Print "connecting" for debugging
+        Serial.println("connecting...");
+        //Send the HTTP PUT request:
+        client.print("PUT /v2/feeds/");
+        client.print(FEEDID);
+        client.println(".csv HTTP/1.1");
+        client.println("Host: api.cosm.com");
+        client.print("X-ApiKey: ");
+        client.println(APIKEY);
+        client.print("User-Agent: ");
+        client.println(USERAGENT);
+        client.print("Content-Length: ");
+        client.println(thisData.length());
+        client.println("Content-Type: text/csv");
+        client.println("Connection: close");
+        client.println();
+        //Actually send the string with the current and power readings
+        client.println(thisData);
+        //Print the string to serial (for debugging)
+//      Serial.println(thisData);
+        client.stop(); //I don't have a clue why I need this, but it doesn't work without it :)
+    } 
+    else {
+//        //If the connection failed, say so (for debugging)
+//        Serial.println("connection failed");
+//        Serial.println();
+//        Serial.println("disconnecting.");
+        client.stop();
+    }
+    //Note the time (counted from 0) that the connection was made or attempted, and store in in lastConnectionTime 
+    lastConnectionTime = millis();
 }
 
