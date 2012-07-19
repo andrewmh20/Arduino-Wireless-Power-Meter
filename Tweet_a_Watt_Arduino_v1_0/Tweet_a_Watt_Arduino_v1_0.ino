@@ -45,7 +45,7 @@
 
   //Initialize the Ethernet library, designating the Arduino as a client
   EthernetClient client;
-  //Declare "server" as the IP address of the server the Arduino will be accessing
+  //Declare "server" as the IP address of the server the Arduino will be accessing, in this case api.cosm.com
   IPAddress server(216,52,233,121); 
 
   //Last time a connection was made to the server, in milliseconds; setup to 0
