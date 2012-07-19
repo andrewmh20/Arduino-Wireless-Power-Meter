@@ -12,8 +12,6 @@
   #define APIKEY         "epqIULzyXJ-yn4ZlUq24Pzh4yr2SAKwvMThFM2gxendlQT0g" //Cosm API ID for my feed
   #define FEEDID         68173 //My Cosm feed ID
   #define USERAGENT      "Power Meter 1" //My Cosm feed name 
-
-  #define postingInterval 1*1000 //Delay between updates to Cosm.com
   
   #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with entire packet 
   #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
@@ -437,19 +435,17 @@ void cosm_send() {
         client.stop();
     }
 
-    //If there is no active connection and the set amount of time has passed since the last connection,
-    // then connect again and run the function that sends the data (below) 
-    if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
+        //Actually send the data, using the function below
         sendData(dataString);
-    }
-    // store the state of the connection for next time through the loop main
-    lastConnected = client.connected();  //!!!!!!!!!Doesn't this actually try to connect as well?????
+    
+    //Store the state of the connection for next time through the loop main
+    lastConnected = client.connected(); //!!!!!!!!!Doesn't this actually try to connect as well?????
 }
 
 
 //This is the function used above to actually send the data to Cosm.com:
 
-//Have sendData alled with the a string as the argument
+//Have sendData called with the above string as the argument
 void sendData(String thisData) {
     //If there's a successful connection on port 80 (HTTP),
     if (client.connect(server, 80)) {
@@ -482,7 +478,4 @@ void sendData(String thisData) {
 //        Serial.println("disconnecting.");
         client.stop();
     }
-    //Note the time (counted from 0) that the connection was made or attempted, and store in in lastConnectionTime 
-    lastConnectionTime = millis();
 }
-
