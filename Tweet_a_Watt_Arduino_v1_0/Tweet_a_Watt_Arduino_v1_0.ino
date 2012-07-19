@@ -1,8 +1,8 @@
-  #include <SoftwareSerial.h>
-  #include <SPI.h>
-  #include <Ethernet.h>
-  #include <avr/interrupt.h> 
-    
+  #include <SoftwareSerial.h> //SoftwareSerial port for Xbee comm
+  #include <SPI.h> //Comm to Ethernet stuff
+  #include <Ethernet.h> //Ethernet stuff
+  #include <avr/interrupt.h> //Convert floats to string to send to Cosm.com
+      
   //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
   uint8_t ssRX = 8;
   uint8_t ssTX = 9;
