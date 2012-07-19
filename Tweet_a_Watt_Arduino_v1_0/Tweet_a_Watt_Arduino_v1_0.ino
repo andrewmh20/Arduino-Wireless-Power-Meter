@@ -1,10 +1,11 @@
+
   #include <SoftwareSerial.h> //SoftwareSerial port for Xbee comm
   #include <SPI.h> //Comm to Ethernet stuff
   #include <Ethernet.h> //Ethernet stuff
-  #include <avr/interrupt.h> //Convert floats to string to send to Cosm.com
+  #include <avr.h> //Convert floats to string to send to Cosm.com
       
   //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
-  uint8_t ssRX = 8;
+  uint8_t ssRX = 7;
   uint8_t ssTX = 9;
   
   SoftwareSerial xbee(ssRX, ssTX);
@@ -69,6 +70,16 @@ void setup() {
   //Print the obtained IP address (for debugging)
   Serial.print("Client is at ");
   Serial.println(Ethernet.localIP());
+    
+    pinMode(5, OUTPUT);
+    pinMode(3, OUTPUT);
+    digitalWrite(5, HIGH);
+    digitalWrite(3, LOW);
+//tx 7
+//5v 5
+//gnd 3
+
+
 }
 
 void loop() {
@@ -76,21 +87,26 @@ void loop() {
     int r;
     //Receive packet, and set r equal to the return of that function (1 if success)
     r = xbee_get_packet();
+    
     //If packet was received, then put the data in nice arrays
     if(r) {
-        r = xbee_interpret_packet(); 
+        r = xbee_interpret_packet();
+       Serial.println("Packet Interpreted"); 
     }
     //If the data put in the arrays sucessfully, then normalize the data in the ADC0 and ADC1 arrays
     if(r) {
         r = normalize_data();
+        Serial.println("Data normalized");
     }    
     //If the data was normalized succesfully, then get average values for amps and watts ?????Maybe volts???
     if(r) {
         r = average_data_per_cycle();
+        Serial.println("Data averaged");
     }
     //If the data averaged successfully, then push it to Cosm.com
     if(r){
       cosm_send();
+//      Serial.println("Data Sent");
     }
 }
   
@@ -143,6 +159,8 @@ boolean xbee_get_packet(){
 //      Serial.println();
 
         //If 0x7E was found, and presumably this all executed well, then return 1
+            Serial.println("Got packet");
+
         return 1;
      }
       
@@ -405,6 +423,13 @@ boolean average_data_per_cycle(){
 //    Serial.print("Final VoltageAmps: ");
 //    Serial.println(avgwatt);
 //    Serial.println();
+
+    if((avgamp < 100) && (avgwatt < 10000)) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 
@@ -429,11 +454,11 @@ void cosm_send() {
 
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:                   !!!!!!WHY!?????
-    if (!client.connected() && lastConnected) {
-        Serial.println();
-        Serial.println("disconnecting...");
-        client.stop();
-    }
+//    if (!client.connected() && lastConnected) {
+//        Serial.println();
+//        Serial.println("disconnecting...");
+//        client.stop();
+//    }
 
         //Actually send the data, using the function below
         sendData(dataString);
@@ -472,10 +497,10 @@ void sendData(String thisData) {
         client.stop(); //I don't have a clue why I need this, but it doesn't work without it :)
     } 
     else {
-//        //If the connection failed, say so (for debugging)
-//        Serial.println("connection failed");
-//        Serial.println();
-//        Serial.println("disconnecting.");
+        //If the connection failed, say so (for debugging)
+        Serial.println("connection failed");
+        Serial.println();
+        Serial.println("disconnecting.");
         client.stop();
     }
 }
