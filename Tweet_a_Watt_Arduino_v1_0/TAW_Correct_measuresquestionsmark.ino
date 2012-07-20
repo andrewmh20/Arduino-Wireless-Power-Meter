@@ -3,7 +3,8 @@
   #include <SPI.h> //Comm to Ethernet stuff
   #include <Ethernet.h> //Ethernet stuff
   #include <avr.h> //Convert floats to string to send to Cosm.com
-  #include <SD.h>
+  #include <avr/wdt.h>
+
   //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
   uint8_t ssRX = 7;
   uint8_t ssTX = 9;
@@ -17,8 +18,7 @@
   #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with entire packet 
   #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
   
-  #define RMS_VOLTAGE 118   //!!!!Calibrate with the Volts displayed on Kill-a-Watt
-  #define VREF_CALIBRATION 552 //!!!!Calibrate with the data in ampdata[i]
+  #define VREF_CALIBRATION 552.1 //!!!!Calibrate with the data in ampdata[i]
   
   #define CURRENT_NORM 15.5    //Converts ADC values to amps
   
@@ -32,12 +32,13 @@
   unsigned int ADC1[MAX_SAMPLE_SIZE];
   
   //Make arrays for the normalized 19 samples of Volts, Amps, and Watts data
-  float ampdata[32];
-  float voltdata[32];
+  float ampdata[MAX_SAMPLE_SIZE];
+  float voltdata[MAX_SAMPLE_SIZE];
+  int ampref[MAX_SAMPLE_SIZE];
   //Declare the variable for the final processed current and power data
-  float avgamp;
-  float avgwatt;
-  
+  float VA;
+  float rmsV;
+  float rmsA;
   //Define the MAC address of the Arduino
   byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x0D, 0x27, 0x80 };
@@ -53,8 +54,8 @@
   unsigned long lastConnectionTime = 0;   
   //Declare the last know state of the connection; setup as not connected    
   boolean lastConnected = false;
-
-File TAW1;
+  int k = 0;
+  int e = 0;
 void setup() {
     //Start Hardware Serial
     Serial.begin(9600);
@@ -79,18 +80,12 @@ void setup() {
 //tx 7
 //5v 5
 //gnd 3
-
-   pinMode(10, OUTPUT);
-   
-
-  // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  TAW1 = SD.open("TAW_log.csv", FILE_WRITE);
-
+  wdt_enable(WDTO_8S);  
 
 }
 
 void loop() {
+    wdt_reset();
     //Declare variable r
     int r;
     //Receive packet, and set r equal to the return of that function (1 if success)
@@ -99,26 +94,42 @@ void loop() {
     //If packet was received, then put the data in nice arrays
     if(r) {
         r = xbee_interpret_packet();
-//       Serial.println("Packet Interpreted"); 
+       Serial.println("Packet Interpreted"); 
     }
     //If the data put in the arrays sucessfully, then normalize the data in the ADC0 and ADC1 arrays
+//   if(k == 1){
+//     calibrate_amps();
+//   }
     if(r) {
         r = normalize_data();
-//        Serial.println("Data normalized");
+        Serial.println("Data normalized");
     }    
     //If the data was normalized succesfully, then get average values for amps and watts ?????Maybe volts???
     if(r) {
         r = average_data_per_cycle();
-//        Serial.println("Data averaged");
+        Serial.println("Data averaged");
     }
     //If the data averaged successfully, then push it to Cosm.com
     if(r){
       cosm_send();
 //      Serial.println("Data Sent");
     }
+    restart_ethernet();
+k++;
+
+e++;
+
 }
   
-
+void restart_ethernet(){
+  if(e > 250) {
+    if (Ethernet.begin(mac) == 0) {
+      Serial.println("DHCP FAILED");
+      //Use a fixed IP address, as determined above
+      Ethernet.begin(mac, ip);
+    }
+  }
+}
 
 boolean xbee_get_packet(){
     //Wait until a byte becomes available from the xbee
@@ -247,7 +258,7 @@ boolean xbee_interpret_packet() {
            int bytes_per_sample = 2 * valid_analog;
            
            //Set t to the starting place in array a for the actual data after the header
-           int t = 8;               
+           int t = 8 + (bytes_per_sample * 2);               
        
            //!!!!!!!!!!I may need to end up discarding the first sample!!!!!!!
            //Define and set s to 0; as long as it is less than the total number of samples (as defined above),
@@ -295,29 +306,38 @@ boolean xbee_interpret_packet() {
 }
 
 
-
-
+void calibrate_amps(){
+    for(int i = 0; i<total_samples-2; i++) {
+    ampref[i] = ADC1[i];
+//    Serial.println(ampref[i]);
+//  Serial.println();  
+  }
+}
 boolean normalize_data() {
        
     //Move the contents of ADC arrays to voltdata[] and ampdata[]; Print the contents(for debugging)
-    for(int i = 0; i < total_samples; i++) {
-        voltdata[i] = ADC0[i];
+    for(int i = 0; i < total_samples-2; i++) {
+        voltdata[i] = ADC0[i] / 1.68; //Approx. 1.68????3?? to go from ADC to volts
 //        Serial.println(voltdata[i]);
     }
-       
-    for(int i = 0; i<total_samples; i++) {
+    
+    
+    for(int i = 0; i<total_samples-2; i++) {
         ampdata[i] = ADC1[i];
+//        Serial.println(ADC1[i]);
+        ampdata[i] -= VREF_CALIBRATION;
+        ampdata[i] /= 15.8;
 //        Serial.println(ampdata[i]);
     }
        
-      
+     
     //Normalize Volts
     
-    int max_v = 0;
-    int min_v = 1024;
+    float max_v = 0;
+    float min_v = 1024;
     
     //Find the maximum and minimum voltage in a packet by comparing each sample to the previous max and min
-    for(int i=0; i<total_samples; i++) {
+    for(int i=0; i<total_samples-2; i++) {
         if (min_v > voltdata[i]) {
             min_v = voltdata[i];
         }
@@ -325,7 +345,12 @@ boolean normalize_data() {
             max_v = voltdata[i];
         }
     }
-    
+        float averageV = (max_v + min_v) / 2;
+
+  for(int i = 0; i < total_samples-2; i++) {
+        voltdata[i] -= averageV;  ///put into the sinosodial form based on the actual voltage
+//     Serial.println(voltdata[i]);
+  }
     //And print them(for debugging)
       
 //  Serial.print("MAX:");
@@ -335,63 +360,41 @@ boolean normalize_data() {
 //  Serial.println(min_v);
 //  Serial.println();
     
-    //Declare and define average volts as the raw value that is the average of the minimum and maximum values = raw center between peaks 
-    float averageV = (max_v + min_v) / 2;
-    //Declare and define peak-to-peak voltage as the raw value that is the difference of the maximum and minimum values
-    int vpp = max_v - min_v;
-    //Declare and define the normalized peak-to-peak voltage as a known value, equal to the RMS voltage, times 2 square roots of 2
-    float mainsvpp = RMS_VOLTAGE * (sqrt(2) * 2);
-    //Print that value (for debugging)
-
-//  Serial.print("mainsvpp: ");
-//  Serial.println(mainsvpp);
-//  Serial.println();
-
-
-    //Calculate the normalized voltage by subtracing averageV, and then muliplying by mainsvpp, and dividing by vpp for each value in voltdata[]
-    //and print (for debugging)
-    for(int i = 0; i < total_samples; i++) {
-        voltdata[i] -= averageV; 
-//      Serial.println(voltdata[i]);
-
-        voltdata[i] = (voltdata[i] * mainsvpp) / vpp;
-//      Serial.println(voltdata[i]);  
-//        Serial.println();  
+    //calc the peak volts, then dividee by root2 because its a sinosudial wave so that give RMS
+    rmsV = ((max_v-min_v)/2) / sqrt(2);
+//    Serial.println(rmsV);
+    
+    float max_a = 0;
+    float min_a = 1024;
+    
+    //Find the maximum and minimum voltage in a packet by comparing each sample to the previous max and min
+    for(int i=0; i<total_samples-2; i++) {
+        if (min_a > ampdata[i]) {
+            min_a = ampdata[i];
+        }
+        if (max_a < ampdata[i]) {
+            max_a = ampdata[i];
+        }
     }
-//  Serial.println();
-//  Serial.println();
-
-
+//  Serial.println(max_a);
+//  Serial.println(min_a);
+//  Serial.println((max_a-min_a)/2);
+  rmsA = 0;
+  for(int i = 0; i<total_samples-2; i++) {
+    rmsA += sq(ampdata[i]);
+  }
+   rmsA /= total_samples-2;
+   rmsA = sqrt(rmsA);
+//    Serial.println(rmsA);
+ 
     //Normalize the amps data where, for each value in ampdata[] you subtract the hardcoded calibration data(the raw values coming over in ADC1[]
     //and then divide by the constant which converts the data to Amperes
     //Print (for debugging)    
-    for(int i = 0; i < total_samples; i++) {
-        ampdata[i] -= VREF_CALIBRATION;
-//      Serial.println(ampdata[i]);
-        ampdata[i] /= CURRENT_NORM;
-//      Serial.println(ampdata[i]);  
-    }
-//  Serial.println(); 
-     
-              
-    //This function now should return 2 arrays with reasonable data, 19 samples each
-    //Print them (for debugging)
     
-//  Serial.print("voltdata: ");
-//  Serial.println();
-//  for (int i = 0; i < total_samples; i++) {
-//      Serial.println(voltdata[i]);
-          
-//  }
-//  Serial.println();
+    
+    
+    
 
-//  Serial.print("ampdata: ");
-//  Serial.println();
-//  for (int i = 0; i < total_samples; i++) {
-//      Serial.println(ampdata[i]);
-//           
-//  }
-//      Serial.println();
 
     //Unless something happened that we didn't get here, always return 1
     return 1;
@@ -404,25 +407,9 @@ boolean normalize_data() {
 
 boolean average_data_per_cycle(){
   
-    //There are 16.6 samples per second
-    float samples_per_second = 16.6;
-    //Define avgamp as 0    
-    avgamp = 0;
-    //Calculate the actual amps/cycle by, 
-    //Starting at 0, the average amps used per cycle are calculated by adding the absolute value of that iteration in ampdata[] to the previous value,
-    for(int i = 0; i < samples_per_second; i++) {
-        avgamp += abs(ampdata[i]);
-    }    
     
-    //and dividing the whole sum  by the samples per second
-    avgamp /= samples_per_second;
-    
-    //To calculate the watts per cycle,
-    //Use P=IV and multiple the calibrated RMS voltage by the averaged amps per cyle
-    avgwatt = RMS_VOLTAGE * avgamp;
-    
-    //!!!Here watts are not really watts, they are VoltageAmps, which are slightly different; (look it up)
-    
+    VA = rmsV * rmsA; 
+//    Serial.println(VA);
     //Print the final current readings, and power readings to serial (for debugging)
 //    Serial.print("Final Current: ");
 //    Serial.println(avgamp);
@@ -432,12 +419,7 @@ boolean average_data_per_cycle(){
 //    Serial.println(avgwatt);
 //    Serial.println();
 
-    if((avgamp < 100) && (avgwatt < 10000)) {
-      TAW1.print("Current, ");
-      TAW1.print(avgamp);
-      TAW1.print("   ");
-      TAW1.print("Power, ");
-      TAW1.print(avgwatt);
+    if((rmsA < 100) && (VA < 10000)) {
         return 1;
     }
     else {
@@ -451,14 +433,17 @@ boolean average_data_per_cycle(){
 void cosm_send() {
     //Use dtostrf function to convert the float values to strings stored in C_data and P_data, and put them in a string with the labels Cosm expects
     char C_data[50];
-    String dataString = "Current,";
-    dtostrf(avgamp, 5, 2, C_data);
+    String dataString = "CurrentRMS,";
+    dtostrf(rmsA, 5, 2, C_data);
     dataString += String(C_data);
-    char P_data[50];
-    dataString += "\nPower,";
-    dtostrf(avgwatt, 5, 2, P_data);
-    dataString += String(P_data);
-
+    char V_data[50];
+    dataString += "\nVoltsRMS,";
+    dtostrf(rmsV, 5, 2, V_data);
+    dataString += String(V_data);
+    char VA_data[50];
+    dataString += "\nVoltageAmps,";
+    dtostrf(VA, 5, 2, VA_data);
+    dataString += String(VA_data);
   //Print any incoming connection information to serial (for debugging, I never used it)
 //    if (client.available()) {
 //    char c = client.read();
