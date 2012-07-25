@@ -408,7 +408,7 @@ boolean normalize_data() {
   }
   rmsA /= total_samples-2;
   rmsA = sqrt(rmsA);
-  rmsA -= .03;
+  rmsA -= .03; //to get rid of consisten error
   Serial.println(rmsA);
 
   //Normalize the amps data where, for each value in ampdata[] you subtract the hardcoded calibration data(the raw values coming over in ADC1[]
