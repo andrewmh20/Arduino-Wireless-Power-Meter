@@ -4,24 +4,12 @@
   #include <Ethernet.h> //Ethernet stuff
   #include <avr.h> //Convert floats to string to send to Cosm.com
   #include <avr/wdt.h>
-
-  //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
-  uint8_t ssRX = 7;
-  uint8_t ssTX = 9;
-  
-  SoftwareSerial xbee(ssRX, ssTX);
-  
+  #define MOVING_AVERAGE_NUMBER 3
   #define APIKEY         "epqIULzyXJ-yn4ZlUq24Pzh4yr2SAKwvMThFM2gxendlQT0g" //Cosm API ID for my feed
   #define FEEDID         68173 //My Cosm feed ID
   #define USERAGENT      "Power Meter 1" //My Cosm feed name 
-  
   #define MAX_PACKET_SIZE 110 //Leave a lot of room for arrays with entire packet 
   #define MAX_SAMPLE_SIZE 32  //Leave a lot of room for arrays with samples
-  
-  #define VREF_CALIBRATION 552.1 //!!!!Calibrate with the data in ampdata[i]
-  
-  #define CURRENT_NORM 15.5    //Converts ADC values to amps
-  
   //Declare the variable for number of samples
   int total_samples;
   //Make array for the whole packet
@@ -30,7 +18,9 @@
   //0 = Volts, 1 = Amps
   unsigned int ADC0[MAX_SAMPLE_SIZE];
   unsigned int ADC1[MAX_SAMPLE_SIZE];
-  
+      boolean first_time = true;  
+float rmsVY;
+float rmsVshil;
   //Make arrays for the normalized 19 samples of Volts, Amps, and Watts data
   float ampdata[MAX_SAMPLE_SIZE];
   float voltdata[MAX_SAMPLE_SIZE];
@@ -39,7 +29,15 @@
   float VA;
   float rmsV;
   float rmsA;
-  //Define the MAC address of the Arduino
+  //Define  MAC address of the Arduino
+    float avgrmsV_array[MOVING_AVERAGE_NUMBER];
+
+    //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
+  uint8_t ssRX = A0;
+  uint8_t ssTX = 9;
+  
+  SoftwareSerial xbee(ssRX, ssTX);
+
   byte mac[] = { 
   0x90, 0xA2, 0xDA, 0x0D, 0x27, 0x80 };
   //Define the local IP address used by the Arduino if DHCP fails
@@ -54,6 +52,7 @@
   unsigned long lastConnectionTime = 0;   
   //Declare the last know state of the connection; setup as not connected    
   boolean lastConnected = false;
+  
   int k = 0;
   int e = 0;
 void setup() {
@@ -62,21 +61,19 @@ void setup() {
     //Start SoftwareSerial Xbee communications
     xbee.begin(9600);
 
+
+
   //Start the Ethernet connection, and if DHCP fails,
-  if (Ethernet.begin(mac) == 0) {
-      Serial.println("DHCP FAILED");
-      //Use a fixed IP address, as determined above
+//  if (Ethernet.begin(mac) == 0) {
+//      Serial.println("DHCP FAILED");
+//      //Use a fixed IP address, as determined above
       Ethernet.begin(mac, ip);
-  }
-  
+////  }
+//  
   //Print the obtained IP address (for debugging)
   Serial.print("Client is at ");
   Serial.println(Ethernet.localIP());
-    
-    pinMode(5, OUTPUT);
-    pinMode(3, OUTPUT);
-    digitalWrite(5, HIGH);
-    digitalWrite(3, LOW);
+
 //tx 7
 //5v 5
 //gnd 3
@@ -94,7 +91,13 @@ void loop() {
     //If packet was received, then put the data in nice arrays
     if(r) {
         r = xbee_interpret_packet();
-       Serial.println("Packet Interpreted"); 
+       Serial.println("Packet Interpreted");
+      for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
+
+//  Serial.println(avgrmsV_array[i]);
+
+}
+ 
     }
     //If the data put in the arrays sucessfully, then normalize the data in the ADC0 and ADC1 arrays
 //   if(k == 1){
@@ -262,7 +265,7 @@ boolean xbee_interpret_packet() {
        
            //!!!!!!!!!!I may need to end up discarding the first sample!!!!!!!
            //Define and set s to 0; as long as it is less than the total number of samples (as defined above),
-           for(int s = 0; s < total_samples; s++){
+           for(int s = 0; s < total_samples -2; s++){
                
                //use the analog data to put an int at s in each array
                //s (and t) increment at each loop, thus assigning each sample to the next space in the array until all the samples have been saved
@@ -285,10 +288,10 @@ boolean xbee_interpret_packet() {
           
 //         Serial.print("ADC1: ");
 
-//         for (int f = 0; f < total_samples; f++) {
+         for (int f = 0; f < total_samples-2; f++) {
 //               Serial.println(ADC1[f]);
-//         }      
-//         Serial.println();
+         }      
+         Serial.println();
           
            //If the 0x7E, and the 0x83 were found, and this presumably executed well, then return 1 
            return 1;
@@ -306,38 +309,51 @@ boolean xbee_interpret_packet() {
 }
 
 
-void calibrate_amps(){
-    for(int i = 0; i<total_samples-2; i++) {
-    ampref[i] = ADC1[i];
-//    Serial.println(ampref[i]);
-//  Serial.println();  
-  }
-}
+
 boolean normalize_data() {
        
+  
+     if(!first_time) {
+        for(int i = MOVING_AVERAGE_NUMBER-1; i>0; i--){
+             avgrmsV_array[i] = avgrmsV_array[i-1];
+  
+  }
+     }
+
     //Move the contents of ADC arrays to voltdata[] and ampdata[]; Print the contents(for debugging)
+   
+   
+    int max_vd = 0;
+    int min_vd = 1024;
+    
+    //Find the maximum and minimum voltage in a packet by comparing each sample to the previous max and min
+    for(int i=0; i<total_samples-2; i++) {
+        if (min_vd > ADC0[i]) {
+            min_vd = ADC0[i];
+        }
+        if (max_vd < ADC0[i]) {
+            max_vd = ADC0[i];
+        }
+    }
+        float vzp = (max_vd + min_vd) / 2.0;
+        
     for(int i = 0; i < total_samples-2; i++) {
-        voltdata[i] = ADC0[i] / 1.68; //Approx. 1.68????3?? to go from ADC to volts
+        voltdata[i] = ADC0[i] - vzp; 
+         voltdata[i] *= 0.59;  ///put into the sinosodial form based on the actual voltage
 //        Serial.println(voltdata[i]);
     }
     
     
-    for(int i = 0; i<total_samples-2; i++) {
-        ampdata[i] = ADC1[i];
-//        Serial.println(ADC1[i]);
-        ampdata[i] -= VREF_CALIBRATION;
-        ampdata[i] /= 15.8;
-//        Serial.println(ampdata[i]);
-    }
-       
+    
      
     //Normalize Volts
     
-    float max_v = 0;
-    float min_v = 1024;
     
-    //Find the maximum and minimum voltage in a packet by comparing each sample to the previous max and min
-    for(int i=0; i<total_samples-2; i++) {
+
+      
+      float max_v = -200.0;
+      float min_v = 200.0;
+for(int i=0; i<total_samples-2; i++) {
         if (min_v > voltdata[i]) {
             min_v = voltdata[i];
         }
@@ -345,52 +361,63 @@ boolean normalize_data() {
             max_v = voltdata[i];
         }
     }
-        float averageV = (max_v + min_v) / 2;
-
-  for(int i = 0; i < total_samples-2; i++) {
-        voltdata[i] -= averageV;  ///put into the sinosodial form based on the actual voltage
-//     Serial.println(voltdata[i]);
-  }
-    //And print them(for debugging)
-      
-//  Serial.print("MAX:");
-//  Serial.println(max_v);
-//  Serial.println();
-//  Serial.print("MIN:");
-//  Serial.println(min_v);
-//  Serial.println();
     
     //calc the peak volts, then dividee by root2 because its a sinosudial wave so that give RMS
-    rmsV = ((max_v-min_v)/2) / sqrt(2);
+    rmsV = ((max_v) * (sqrt(2.0)*.5)); 
 //    Serial.println(rmsV);
-    
-    float max_a = 0;
-    float min_a = 1024;
+        if(!first_time){ 
+          avgrmsV_array[0] = rmsV;
+  float avgrmsV = 0.0;
+for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
+        avgrmsV += avgrmsV_array[i];
+  Serial.println(avgrmsV_array[i]);
+
+}
+avgrmsV /= MOVING_AVERAGE_NUMBER;
+Serial.println(avgrmsV);  
+}
+    if(first_time){
+      for(int i =0; i<MOVING_AVERAGE_NUMBER; i++){
+        avgrmsV_array[i] = rmsV;
+        Serial.println(avgrmsV_array[i]);
+      }
+    }
+  
+
+ 
+    first_time = false;
+    float max_ad = 0;
+    float min_ad = 1024;
     
     //Find the maximum and minimum voltage in a packet by comparing each sample to the previous max and min
     for(int i=0; i<total_samples-2; i++) {
-        if (min_a > ampdata[i]) {
-            min_a = ampdata[i];
+        if (min_ad > ADC1[i]) {
+            min_ad = ADC1[i];
         }
-        if (max_a < ampdata[i]) {
-            max_a = ampdata[i];
+        if (max_ad < ADC1[i]) {
+            max_ad = ADC1[i];
         }
     }
-//  Serial.println(max_a);
-//  Serial.println(min_a);
-//  Serial.println((max_a-min_a)/2);
+
+float azp = (max_ad + min_ad) / 2
+;
+for(int i = 0; i<total_samples-2; i++) {
+        ampdata[i] = ADC1[i] - azp;
+        ampdata[i] /= 16.4;  
+  }       
+    
+    
   rmsA = 0;
   for(int i = 0; i<total_samples-2; i++) {
     rmsA += sq(ampdata[i]);
   }
    rmsA /= total_samples-2;
    rmsA = sqrt(rmsA);
-//    Serial.println(rmsA);
+    Serial.println(rmsA);
  
     //Normalize the amps data where, for each value in ampdata[] you subtract the hardcoded calibration data(the raw values coming over in ADC1[]
     //and then divide by the constant which converts the data to Amperes
     //Print (for debugging)    
-    
     
     
     
@@ -408,8 +435,8 @@ boolean normalize_data() {
 boolean average_data_per_cycle(){
   
     
-    VA = rmsV * rmsA; 
-//    Serial.println(VA);
+    VA = rmsV * rmsA;   //maybe subtract .03 first
+    Serial.println(VA);
     //Print the final current readings, and power readings to serial (for debugging)
 //    Serial.print("Final Current: ");
 //    Serial.println(avgamp);
@@ -418,16 +445,27 @@ boolean average_data_per_cycle(){
 //    Serial.print("Final VoltageAmps: ");
 //    Serial.println(avgwatt);
 //    Serial.println();
+float watts = 0;
 
+for(int i = 0; i < total_samples-2; i++) {
+    watts += (ampdata[i] * voltdata[i]);
+}
+
+watts /= (total_samples-2);
+  Serial.println(watts);
+  
+float PF = watts/VA;
+Serial.println(PF);
     if((rmsA < 100) && (VA < 10000)) {
         return 1;
     }
     else {
         return 0;
     }
+
+    
+
 }
-
-
 //Send the final data to Cosm.com
 
 void cosm_send() {
@@ -452,11 +490,11 @@ void cosm_send() {
 
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:                   !!!!!!WHY!?????
-//    if (!client.connected() && lastConnected) {
-//        Serial.println();
-//        Serial.println("disconnecting...");
-//        client.stop();
-//    }
+    if (!client.connected() && lastConnected) {
+        Serial.println();
+        Serial.println("disconnecting...");
+        client.stop();
+    }
 
         //Actually send the data, using the function below
         sendData(dataString);
