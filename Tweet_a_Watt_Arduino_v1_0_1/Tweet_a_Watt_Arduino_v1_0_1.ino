@@ -32,7 +32,7 @@ float rmsA;
 //Define  MAC address of the Arduino
 float avgrmsV_array[MOVING_AVERAGE_NUMBER];
 float avgrmsA_array[MOVING_AVERAGE_NUMBER];
-
+float avgwatt_array[MOVING_AVERAGE_NUMBER];
 //I/O 8 is receive, and I/O 9 is transmit for Xbee comm
 uint8_t ssRX = A0;
 uint8_t ssTX = 9;
@@ -93,17 +93,8 @@ void loop() {
   if(r) {
     r = xbee_interpret_packet();
     Serial.println("Packet Interpreted");
-    for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
-
-      //  Serial.println(avgrmsV_array[i]);
-
-    }
 
   }
-  //If the data put in the arrays sucessfully, then normalize the data in the ADC0 and ADC1 arrays
-  //   if(k == 1){
-  //     calibrate_amps();
-  //   }
   if(r) {
     r = normalize_data();
     Serial.println("Data normalized");
@@ -417,6 +408,7 @@ boolean normalize_data() {
   }
   rmsA /= total_samples-2;
   rmsA = sqrt(rmsA);
+  rmsA -= .03;
   Serial.println(rmsA);
 
   //Normalize the amps data where, for each value in ampdata[] you subtract the hardcoded calibration data(the raw values coming over in ADC1[]
@@ -464,7 +456,7 @@ boolean normalize_data() {
 
   if(!first_time){ 
     avgwatt_array[0] = watts;
-    avgwatt = 0.0;
+    float avgwatt = 0.0;
     for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
       avgwatt += avgwatt_array[i];
       //  Serial.println(avgrmsA_array[i]);
