@@ -26,9 +26,10 @@ float avgrmsA_array[MOVING_AVERAGE_NUMBER];
 float avgwatt_array[MOVING_AVERAGE_NUMBER];
 float avgrmsV; //Declare the variables for the moving averaged RMS values
 float avgrmsA;
+float avgwatt;
 boolean lastConnected = false; //Declare the last know state of the ethernet connection; setup as not connected    
 int e = 0; //Define counter  e
-
+int k = 0;
 //Define analog I/O 0 as receive, and analog I/O 1 as transmit for Xbee comm
 uint8_t ssRX = A0;
 uint8_t ssTX = A1;
@@ -36,7 +37,7 @@ uint8_t ssTX = A1;
 SoftwareSerial xbee(ssRX, ssTX); //"Name" the software serial class xbee, and give it the I/O pins above for TX/RX
 
 byte mac[] = { 
-  0x90, 0xA2, 0xDA, 0x0D, 0x27, 0x80 }; //Define the Arduino MAC address for networking
+  0x90, 0xA2, 0xDA, 0x00, 0xF5, 0x88 }; //Define the Arduino MAC address for networking
 IPAddress ip(10,10,5,110); //Define the local IP address used by the Arduino if DHCP fails
 EthernetClient client; //Initialize the Ethernet library, designating the Arduino as a client
 IPAddress server(216,52,233,121); //Declare "server" as the IP address of the server the Arduino will be accessing, in this case api.cosm.com
@@ -80,12 +81,14 @@ void loop() {
   if(r){
     cosm_send();
     Serial.println("Data Sent");
+    k = 0;
   }
+
   
   restart_ethernet(); //See if its time to restart ethernet yet  !!!!!!!!!!!!!!Idk if this actually works!!!!!!!!
 
   e++;
-
+  k++;
 }
 
 void restart_ethernet(){
@@ -296,6 +299,7 @@ boolean normalize_data() {
   for(int i = 0; i < total_samples-2; i++) {
     voltdata[i] = ADC0[i] - vzp; //Shift down the wave so that the center is at 0
     voltdata[i] *= 0.59;  //Multiply by a constant to convert the digital to actual voltage
+    voltdata[i] -= 1;//?????????????????????//
     //        Serial.println(voltdata[i]);
   }
 
@@ -312,7 +316,7 @@ boolean normalize_data() {
   }
   //Use the peak voltage to calculate RMS of sine wave
   rmsV = ((max_v) * (sqrt(2.0)*.5)); 
-  Serial.println(rmsV);
+//  Serial.println(rmsV);
   
   //If it is not the first time through then put the new RMS in the moving average array,
   if(!first_time){ 
@@ -371,7 +375,7 @@ boolean normalize_data() {
   rmsA /= total_samples-2;
   rmsA = sqrt(rmsA);
   rmsA -= .03; //To get rid of consistent calculation error
-  Serial.println(rmsA);
+//  Serial.println(rmsA);
 
   if(!first_time){ 
     avgrmsA_array[0] = rmsA;
@@ -413,7 +417,7 @@ boolean normalize_data() {
 
   if(!first_time){ 
     avgwatt_array[0] = watts;
-    float avgwatt = 0.0;
+    avgwatt = 0.0;
     for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
       avgwatt += avgwatt_array[i];
       //  Serial.println(avgrmsA_array[i]);
@@ -450,21 +454,26 @@ void cosm_send() {
   //Use dtostrf function to convert the float values to strings stored in C_data and P_data, and put them in a string with the labels Cosm expects
   char C_data[50];
   String dataString = "CurrentRMS,";
-  dtostrf(rmsA, 5, 2, C_data);
+  dtostrf(avgrmsA, 5, 2, C_data);
   dataString += String(C_data);
   char V_data[50];
   dataString += "\nVoltsRMS,";
-  dtostrf(rmsV, 5, 2, V_data);
+  dtostrf(avgrmsV, 5, 2, V_data);
   dataString += String(V_data);
   char VA_data[50];
   dataString += "\nVoltageAmps,";
   dtostrf(VA, 5, 2, VA_data);
   dataString += String(VA_data);
+  char W_data[50];
+  dataString += "\nWatts,";
+  dtostrf(avgwatt, 5, 2, W_data);
+//  dataString += String(W_data);
+
   //Print any incoming connection information to serial (for debugging, I never used it)
-  //    if (client.available()) {
-  //    char c = client.read();
-  //    Serial.print(c);
-  //    }
+      if (client.available()) {
+      char c = client.read();
+      Serial.print(c);
+      }
 
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:                   !!!!!!WHY!?????
