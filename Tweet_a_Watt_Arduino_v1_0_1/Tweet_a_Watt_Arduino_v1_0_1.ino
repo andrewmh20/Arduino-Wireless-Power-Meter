@@ -24,9 +24,16 @@ float VA; //Decare the variable for the apparent power
 float avgrmsV_array[MOVING_AVERAGE_NUMBER]; //Declare arrays for the moving average samples
 float avgrmsA_array[MOVING_AVERAGE_NUMBER];
 float avgwatt_array[MOVING_AVERAGE_NUMBER];
+float avgVA_array[MOVING_AVERAGE_NUMBER];
 float avgrmsV; //Declare the variables for the moving averaged RMS values
 float avgrmsA;
 float avgwatt;
+float avgVA;
+/*
+float avgPF_array[MOVING_AVERAGE_NUMBER];
+float avgPF;
+float PF;
+*/
 boolean lastConnected = false; //Declare the last know state of the ethernet connection; setup as not connected    
 int e = 0; //Define counter  e
 int k = 0;
@@ -57,7 +64,7 @@ void setup() {
     Ethernet.begin(mac, ip);
   }
   //Print the obtained IP address (for debugging)
-  Serial.print("Client is at ");
+  Serial.print(F("Client is at "));
   Serial.println(Ethernet.localIP());
 
   wdt_enable(WDTO_8S);  //Enable to watchdog timer so it resets the board after 8 seconds of no activity
@@ -70,17 +77,17 @@ void loop() {
   //If packet was received, then put the data in nice arrays
   if(r) {
     r = xbee_interpret_packet(); //and set r to the return of that function, etc.
-    Serial.println("Packet Interpreted");
+    Serial.println(F("Packet Interpreted"));
   }
   //Calculate the actual values from the data
   if(r) {
     r = normalize_data();
-    Serial.println("Data normalized");
+    Serial.println(F("Data normalized"));
   }    
   //If the data averaged successfully, then push it to Cosm.com
   if(r){
     cosm_send();
-    Serial.println("Data Sent");
+    Serial.println(F("Data Sent"));
     k = 0;
   }
 
@@ -146,7 +153,7 @@ boolean xbee_get_packet(){
     //      Serial.println();
 
     //If 0x7E was found, and presumably this all executed well, then return 1
-    Serial.println("Got packet");
+    Serial.println(F("Got packet"));
 
     return 1;
   }
@@ -395,10 +402,36 @@ boolean normalize_data() {
     }
   }
 
+  if(!first_time) {
+    for(int i = MOVING_AVERAGE_NUMBER-1; i>0; i--){
+      avgVA_array[i] = avgVA_array[i-1];
+
+    }
+  }
 
   //Calculate the apparent power
-  VA = avgrmsV * avgrmsA;
-  Serial.println(VA);
+  VA = rmsV * rmsA;
+  int VAint = int(VA);
+  if(VAint < 1){
+    VA = 0.0;
+  }
+    if(!first_time){ 
+    avgVA_array[0] = VA;
+    avgVA = 0.0;
+    for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
+      avgVA += avgVA_array[i];
+      //  Serial.println(avgrmsA_array[i]);
+    }
+    avgVA /= MOVING_AVERAGE_NUMBER;
+    Serial.println(avgVA);  
+  }
+  
+  if(first_time){
+    for(int i =0; i<MOVING_AVERAGE_NUMBER; i++){
+      avgVA_array[i] = VA;
+      //        Serial.println(avgrmsA_array[i]);
+    }
+  }
 
   //Moving average for watts
   if(!first_time) {
@@ -407,12 +440,16 @@ boolean normalize_data() {
     }
   }
 
-  float watts = 0;
+  float watts = 0.0;
   //Take the average of the instant watts = real power
   for(int i = 0; i < total_samples-2; i++) {
     watts += (ampdata[i] * voltdata[i]);
   }
   watts /= (total_samples-2);
+  int wattsint = int(watts);
+  if(wattsint < 1){
+    watts = 0.0;
+  }
   //  Serial.println(watts);
 
   if(!first_time){ 
@@ -429,14 +466,47 @@ boolean normalize_data() {
   if(first_time){
     for(int i =0; i<MOVING_AVERAGE_NUMBER; i++){
       avgwatt_array[i] = watts;
-      //        Serial.println(avgrmsA_array[i]);
     }
   }
 
+/*
+
+Power Factor calculations are NOT accurate enough for my purposes, but I have left some possible code in case I ever come back to it
+//  if(!first_time) {
+//    for(int i = MOVING_AVERAGE_NUMBER-1; i>0; i--){
+//      avgPF_array[i] = avgPF_array[i-1];
+//    }
+//  }
 
   //Calculate the Power Factor = real power / apparent power
-  float PF = watts/VA;
-  Serial.println(PF);
+//  PF = (avgwatt*1000)/(avgVA*1000);
+  
+  PF = 1-((watts-VA)/VA);
+  int PFint = int(PF);
+if(PFint == 0){
+
+    PF = 1.0;
+}
+    Serial.println(PF);
+
+//  if(!first_time){ 
+//    avgPF_array[0] = PF;
+//    PF = 0.0;
+//    for(int i = 0; i<MOVING_AVERAGE_NUMBER; i++){
+//      avgPF += avgPF_array[i];
+//      //  Serial.println(avgrmsA_array[i]);
+//    }
+//    avgPF /= MOVING_AVERAGE_NUMBER;
+//    Serial.println(avgPF);  
+//  }
+//  
+//  if(first_time){
+//    for(int i =0; i<MOVING_AVERAGE_NUMBER; i++){
+//      avgPF_array[i] = PF;
+//    }
+//  }
+*/
+
 
   //If the data is good, and only then, change first time to true, and return 1 to move on with the sketch
   if((rmsA < 100) && (VA < 10000)) {
@@ -462,13 +532,18 @@ void cosm_send() {
   dataString += String(V_data);
   char VA_data[50];
   dataString += "\nVoltageAmps,";
-  dtostrf(VA, 5, 2, VA_data);
+  dtostrf(avgVA, 5, 2, VA_data);
   dataString += String(VA_data);
   char W_data[50];
   dataString += "\nWatts,";
   dtostrf(avgwatt, 5, 2, W_data);
-//  dataString += String(W_data);
-
+  dataString += String(W_data);
+  /*
+  char PF_data[30];
+  dataString += "\nPowerFactor,";
+  dtostrf(PF, 5, 2, PF_data);
+  dataString += String(PF_data);
+  */
   //Print any incoming connection information to serial (for debugging, I never used it)
       if (client.available()) {
       char c = client.read();
@@ -498,18 +573,18 @@ void sendData(String thisData) {
     //Print "connecting" for debugging
     Serial.println("connecting...");
     //Send the HTTP PUT request:
-    client.print("PUT /v2/feeds/");
+    client.print(F("PUT /v2/feeds/"));
     client.print(FEEDID);
-    client.println(".csv HTTP/1.1");
-    client.println("Host: api.cosm.com");
-    client.print("X-ApiKey: ");
+    client.println(F(".csv HTTP/1.1"));
+    client.println(F("Host: api.cosm.com"));
+    client.print(F("X-ApiKey: "));
     client.println(APIKEY);
-    client.print("User-Agent: ");
+    client.print(F("User-Agent: "));
     client.println(USERAGENT);
-    client.print("Content-Length: ");
+    client.print(F("Content-Length: "));
     client.println(thisData.length());
-    client.println("Content-Type: text/csv");
-    client.println("Connection: close");
+    client.println(F("Content-Type: text/csv"));
+    client.println(F("Connection: close"));
     client.println();
     //Actually send the string with the current and power readings
     client.println(thisData);
