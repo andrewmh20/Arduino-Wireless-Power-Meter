@@ -18,9 +18,8 @@
       <div class="inner">
 
         <header>
-          <h1>Tweet-a-watt-arduino</h1>
-          <h2>This is a Kill-a-Watt modified as per the instructions for Tweet-a-Watt, attached to an Arduino for web hosting</h2>
-        </header>
+  <h1>Tweet-a-Watt with Arduino Modifications</h1>
+        <h2>Modified Kill-a-Watt based on Lady Ada's instructions http://www.ladyada.net/make/tweetawatt/index.html with the addition of an Arduino Ethernet</h2>        </header>
 
         <section id="downloads" class="clearfix">
           <a href="https://github.com/andrewmh20/Tweet-a-Watt-Arduino/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
@@ -31,32 +30,36 @@
         <hr>
 
         <section id="main_content">
-          <h3>Welcome to GitHub Pages.</h3>
+     
+		
+		<h3>Hardware:</h3>
+<p>To set up the Xbee and Kill-a-Watt connection, I followed the instructions 
+	by Lady Ada exactly (<a href="http://www.ladyada.net/make/tweetawatt/make.html">Make the hardware</a>), using the kid from Adafruit.com, except that instead of using analog inputs 0 and 4, I used A0 and A1. However, because of the close proximity of the resistors going into one hole, I used A4, but then routed it to A1 using a jumper wire underneath. A1 should work just as well, but make sure to change the code to reflect that change. To connect to the Arduino I hooked up the ground and 5V pins from the Xbee
+breakout board to the Arduino, and hooked up TX to a Software Serial pin (I used A0 because of physical location).</p>
+<h3>Python Script Modification:</h3>
+<p>After downloading Lady Ada's python scripts I found that it was rather difficult to get the Twitter libraries installed on Windows.
+	In order to fix that problem, since I was not concerned with tweeting in my project I just deleted all the lines referencing that library.</p>
+	
+<h3>Software:</h3>
+<p>I wrote code for the Arduino to receive data over Xbee, parse it, average it, and send it over Ethernet 
+	to a server. I used the website Cosm.com, formerly Pachube.com which, with the help of some of the Arduino
+	example code, graphs the real time and historical data online.</p> 
+<p>For the serial parser functions, the python code was very helpful, as was the online manual to the Xbee (<a href="http://ftp1.digi.com/support/documentation/90000982_B.pdf">Xbee Manual</a>), but when it came to actually calculating the voltage, current, and power from the raw ADC data, I used  my own methods. It should be noted that the Xbee only sends data for the inputs that are active. So in this case, no digital data was sent, only 2 analog channels. </p>
+<p>The ADC data coming from the Xbee are 10 bit numbers between 0 and 1024, where ideally 512 is equivalent to 0 volts/amps, but that is not always the case. After receiving the data and isolating the ADC values, which are what we care about, they need to be converted to volts and amps. To do so for both volts and amps, I first calculated the digital number which would correspond to zero, and subtracted that from each sample. Then using trial and error, I found a constant which I divided each value by (different for volts and amps). Then I used those samples to calculate the RMS voltage and current. To calculate apparent power I multiplied them, and to calculate real power, I multiplied each individual sample, and took the mean of that. I calculated a moving average for each of those to smooth out the data.
+</p>
+<p>Lastly, the Arduino sends strings to Cosm.com which include a PUT request header, and the actual data in .csv format.</p>
+<h3> Here are the real time graphs:</h3>
+<p> They can also be viewed at <a href="https://cosm.com/feeds/68173">https://cosm.com/feeds/68173</a>. To view the most recent data please refresh the web page. 
+</p>
+<img src="https://api.cosm.com/v2/feeds/68173/datastreams/CurrentRMS.png?width=730&height=250&colour=%23f15a24&duration=5minutes&show_axis_labels=true&detailed_grid=true&timezone=Eastern%20Time%20(US%20%26%20Canada)">
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<h3>External Sources:</h3>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+<p>I used the Arduino Ethernet, SPI, Sotware Serial, avr, and avr/wdt libraries. The code is largely based on Lady Ada's python script but with some important modifications as explained above.</p>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<h3>Contact:</h3>
 
-<h3>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<p>Feel free to contact me with any questions about the project and its setup by email at <a href="mailto:andrewmh20@nyc.rr.com">andrewmh20@nyc.rr.com</a>!</p>
         </section>
 
         <footer>
