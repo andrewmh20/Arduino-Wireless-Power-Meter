@@ -42,8 +42,14 @@ breakout board to the Arduino, and hooked up TX to a Software Serial pin (I used
 	to a server. I used the website Cosm.com, formerly Pachube.com which, with the help of some of the Arduino
 	example code, graphs the real time and historical data online.</p> 
 <p>For the serial parser functions, the python code was very helpful, as was the online manual to the Xbee (<a href="http://ftp1.digi.com/support/documentation/90000982_B.pdf">Xbee Manual</a>), but when it came to actually calculating the voltage, current, and power from the raw ADC data, I used  my own methods. It should be noted that the Xbee only sends data for the inputs that are active. So in this case, no digital data was sent, only 2 analog channels. </p>
-<p>The ADC data coming from the Xbee are 10 bit numbers between 0 and 1024, where ideally 512 is equivalent to 0 volts/amps, but that is not always the case. After receiving the data and isolating the ADC values, which are what we care about, they need to be converted to volts and amps. To do so I first 
+<p>The ADC data coming from the Xbee are 10 bit numbers between 0 and 1024, where ideally 512 is equivalent to 0 volts/amps, but that is not always the case. After receiving the data and isolating the ADC values, which are what we care about, they need to be converted to volts and amps. To do so for both volts and amps, I first calculated the digital number which would correspond to zero, and subtracted that from each sample. Then using trial and error, I found a constant which I divided each value by (different for volts and amps). Then I used those samples to calculate the RMS voltage and current. To calculate apparent power I multiplied them, and to calculate real power, I multiplied each individual sample, and took the mean of that. I calculated a moving average for each of those to smooth out the data.
 </p>
+<p>Lastly, the Arduino sends strings to Cosm.com which include a PUT request header, and the actual data in .csv format.</p>
+<h3> Here are the real time graphs:</h3>
+<p> They can also be viewed at <a href="https://cosm.com/feeds/68173">https://cosm.com/feeds/68173</a>. To view the most recent data please refresh the web page. 
+</p>
+<img src="https://api.cosm.com/v2/feeds/68173/datastreams/CurrentRMS.png?width=730&height=250&colour=%23f15a24&duration=5minutes&show_axis_labels=true&detailed_grid=true&timezone=Eastern%20Time%20(US%20%26%20Canada)">
+
 <h3>External Sources:</h3>
 
 <p>I used the Arduino Ethernet, SPI, Sotware Serial, avr, and avr/wdt libraries. The code is largely based on Lady Ada's python script but with some important modifications as explained above.</p>
