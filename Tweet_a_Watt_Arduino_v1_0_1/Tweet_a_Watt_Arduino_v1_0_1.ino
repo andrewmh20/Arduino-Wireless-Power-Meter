@@ -450,7 +450,7 @@ boolean normalize_data() {
   }
   watts /= (total_samples-2);
   int wattsint = int(watts);
-  if(wattsint < 1){
+  if(wattsint < 2){
     watts = 0.0;
   }
   //  Serial.println(watts);
