@@ -86,10 +86,12 @@ void loop() {
   }    
   //If the data averaged successfully, then push it to Cosm.com
   if(r){
+    Serial.println("R");
+    if(k == 15){
     cosm_send();
     Serial.println(F("Data Sent"));
     k = 0;
-  }
+  }}
 
   
   restart_ethernet(); //See if its time to restart ethernet yet  !!!!!!!!!!!!!!Idk if this actually works!!!!!!!!
