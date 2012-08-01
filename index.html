@@ -10,7 +10,7 @@
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-    <title>Tweet-a-watt-arduino by andrewmh20</title>
+    <title>Arduino-Wireless-Power-Meter by andrewmh20</title>
   </head>
 
   <body>
@@ -18,27 +18,30 @@
       <div class="inner">
 
         <header>
-  <h1>Tweet-a-Watt with Arduino Modifications</h1>
-        <h2>Modified Kill-a-Watt based on Lady Ada's instructions http://www.ladyada.net/make/tweetawatt/index.html with the addition of an Arduino Ethernet</h2>        </header>
+  <h1>Arduino-Wireless-Power-Meter</h1>
+        <h2>Modified Kill-a-Watt based on  <a href="http://www.ladyada.net/make/tweetawatt/index.html">Lady Ada's Tweet-a-Watt</a> with the addition of an Arduino Ethernet.</h2>        </header>
 
         <section id="downloads" class="clearfix">
-          <a href="https://github.com/andrewmh20/Tweet-a-Watt-Arduino/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/andrewmh20/Tweet-a-Watt-Arduino/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
-          <a href="https://github.com/andrewmh20/Tweet-a-Watt-Arduino" id="view-on-github" class="button"><span>View on GitHub</span></a>
+          <a href="https://github.com/andrewmh20/Arduino-Wireless-Power-Meter/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/andrewmh20/Arduino-Wireless-Power-Meter/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/andrewmh20/Arduino-Wireless-Power-Meter" id="view-on-github" class="button"><span>View on GitHub</span></a>
         </section>
 
         <hr>
 
         <section id="main_content">
      
-		
+		<img src="images/Arduino_Wireless_Power_Meter.png">
+        
 		<h3>Hardware:</h3>
 <p>To set up the Xbee and Kill-a-Watt connection, I followed the instructions 
-	by Lady Ada exactly (<a href="http://www.ladyada.net/make/tweetawatt/make.html">Make the hardware</a>), using the kit from Adafruit.com, except that instead of using analog inputs 0 and 4 on the transmitter, I used A0 and A1. However, because of the close proximity of the resistors going into one hole, I used A4, but then routed it to A1 using a jumper wire underneath. Also, on the receiver, I used vertical male headers, and only connected them to the pins I needed to connect to the Arduino, in order to make it easier to use female-to-male jumper wires for the connection. </p>
+	by Lady Ada exactly, using the kit from Adafruit.com, except that instead of using analog inputs 0 and 4 on the transmitter, I used A0 and A1. However, because of the close proximity of the resistors going into one hole, I used A4, but then routed it to A1 using a jumper wire underneath. Also, on the receiver, I used vertical male headers, and only connected them to the pins I needed to connect to the Arduino, in order to make it easier to use female-to-male jumper wires for the connection. </p>
   <p>  To connect to the Arduino I hooked up the ground and 5V pins from the Xbee
 breakout board to the Arduino, and hooked up TX to a Software Serial pin (I used A0 because of physical location).</p>
+<p> Download my Bill of Materials from here: <a href="Bill of Materials.xlsx">Bill of Materials</a>.<br>
+All the documentation and instructions for the original Tweet-a-Watt project can be found <a href="http://www.ladyada.net/make/tweetawatt/make.html">here</a>.</p>
 <h3>Python Script Modification:</h3>
-<p>After downloading Lady Ada's python scripts I found that it was rather difficult to get the Twitter libraries installed on Windows.
+<p>Before moving on to the Arduino part of my project I wanted to test the direct Xbee connection to the computer with Lady Ada's python scripts. After downloading Lady Ada's python scripts I found that it was rather difficult to get the Twitter libraries installed on Windows.
 	In order to fix that problem, since I was not concerned with tweeting in my project I just deleted all the lines referencing that library.</p>
 <h3>Arduino Software:</h3>
 <p>I wrote code for the Arduino to receive data over Xbee, parse it, average it, and send it over Ethernet 
@@ -49,28 +52,34 @@ breakout board to the Arduino, and hooked up TX to a Software Serial pin (I used
 </p>
 <p>Lastly, the Arduino sends strings to Cosm.com which include a PUT request header, and the actual data in .csv format.</p>
 <h3> Here are the real time graphs:</h3>
-<p> They can also be viewed at <a href="https://cosm.com/feeds/68173">https://cosm.com/feeds/68173</a>. To view the most recent data please refresh the web page. 
+<p> They can also be viewed in a lot of a nicer format at <a href="https://cosm.com/feeds/68173">https://cosm.com/feeds/68173</a>. To view the most recent data please refresh the web page. 
 </p>
-<img src="https://api.cosm.com/v2/feeds/68173/datastreams/CurrentRMS.png?width=730&height=250&colour=%23f15a24&duration=5minutes&show_axis_labels=true&detailed_grid=true&timezone=Eastern%20Time%20(US%20%26%20Canada)">
+<img src="https://api.cosm.com/v2/feeds/68173/datastreams/CurrentRMS.png?width=730&height=250&colour=%230000FF%20%20&duration=30days&title=RMS%20Current&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
 
-<h3>External Sources:</h3>
+<img src="https://api.cosm.com/v2/feeds/68173/datastreams/VoltsRMS.png?width=730&height=250&colour=%230000FF&duration=30days&title=RMS%20Volts&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
 
-<p>I used the Arduino Ethernet, SPI, Software Serial, avr, and avr/wdt libraries. The code is  based on Lady Ada's python script but with some important modifications as explained above.</p>
+<img src="https://api.cosm.com/v2/feeds/68173/datastreams/VoltageAmps.png?width=730&height=250&colour=%230000FF&duration=30days&title=Voltage%20Amps&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
+
+<img src="https://api.cosm.com/v2/feeds/68173/datastreams/Watts.png?width=730&height=250&colour=%230000FF&duration=30days&title=Watts&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
+
+<h3>Credits:</h3>
+
+<p>I used the Arduino Ethernet, SPI, Software Serial, avr, and avr/wdt libraries. The hardware is based on the Tweet-a-Watt kit from <a href="adafruit.com">adafruit.com</a>. The code is  based on Lady Ada's python script but with some important modifications as explained above.</p>
 
 <h3>Contact:</h3>
 
-<p>Feel free to contact me with any questions about the project and its setup by email at <a href="mailto:andrewmh20@nyc.rr.com">andrewmh20@nyc.rr.com</a>!</p>
+<p>Feel free to contact me with any questions about the project and its setup or license by email at <a href="mailto:andrewmh20@nyc.rr.com">andrewmh20@nyc.rr.com</a>!<br>
+Videos and blog posts for the project can be found at the <a href=" http://www.bluestampengineering.com/author/andrewmh12/">Blue Stamp Engineering Website.</a>
+</p>
         </section>
-
-        <footer>
-          Tweet-a-watt-arduino is maintained by <a href="https://github.com/andrewmh20">andrewmh20</a><br>
-          This page was generated by <a href="http://pages.github.com">GitHub Pages</a> and Andrew Merczynski-Hait. Tactile theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.
-        
-        <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">Arduino Wireless Power Meter</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.andrewmh20.github.com/Wireless_Power_Meter" property="cc:attributionName" rel="cc:attributionURL">Andrew Merczynski-Hait</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.<br />Based on a work at <a xmlns:dct="http://purl.org/dc/terms/" href="http://www.ladyada.net/make/tweetawatt/index.html" rel="dct:source">http://www.ladyada.net/make/tweetawatt/index.html</a>.
-   
+<footer>
+      Tweet-a-watt-arduino is maintained by <a href="https://github.com/andrewmh20">andrewmh20</a><br>
+      This page was generated by <a href="http://pages.github.com">GitHub Pages</a> and <a href="https://github.com/andrewmh20">Andrew Merczynski-Hait</a>. Tactile theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.
+            
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a><br />
+      <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">Arduino Wireless Power Meter</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="mailto:andrewmh20@nyc.rr.com" property="cc:attributionName" rel="cc:attributionURL">Andrew Merczynski-Hait</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.<br />Based on a work at <a xmlns:dct="http://purl.org/dc/terms/" href="http://www.ladyada.net/make/tweetawatt/index.html" rel="dct:source">http://www.ladyada.net/make/tweetawatt/index.html</a>.
+            
         </footer>
-
-        
       </div>
     </div>
   </body>
