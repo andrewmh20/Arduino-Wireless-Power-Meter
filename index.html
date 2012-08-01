@@ -44,10 +44,10 @@ All the documentation and instructions for the original Tweet-a-Watt project can
 <p>Before moving on to the Arduino part of my project I wanted to test the direct Xbee connection to the computer with Lady Ada's python scripts. After downloading Lady Ada's python scripts I found that it was rather difficult to get the Twitter libraries installed on Windows.
 	In order to fix that problem, since I was not concerned with tweeting in my project I just deleted all the lines referencing that library.</p>
 <h3>Arduino Software:</h3>
-<p>I wrote code for the Arduino to receive data over Xbee, parse it, average it, and send it over Ethernet 
-	to a server. I used the website Cosm.com, formerly Pachube.com which, with the help of some of the Arduino
+<p>I wrote code for the Arduino to receive data over Xbee, parse it, convert it to actual volts and amps, average it, and send it over Ethernet 
+	to a server. I used the website Cosm.com, formerly Pachube.com, which, with the help of some of the Arduino
 	example code, graphs the real time and historical data online.</p> 
-<p>For the serial parser functions, the python code was very helpful, as was the online manual to the Xbee (<a href="http://ftp1.digi.com/support/documentation/90000982_B.pdf">Xbee Manual</a>), but when it came to actually calculating the voltage, current, and power from the raw ADC data, I used  my own methods. It should be noted that the Xbee only sends data for the inputs that are active. So in this case, no digital data was sent, only 2 analog channels. </p>
+<p>For the serial parser functions, the original python code was very helpful, as was the online manual to the Xbee (<a href="http://ftp1.digi.com/support/documentation/90000982_B.pdf">Xbee Manual</a>), but when it came to actually calculating the voltage, current, and power from the raw ADC data, I used  my own methods. It should be noted that the Xbee only sends data for the inputs that are active. So in this case, no digital data was sent, only 2 analog channels. </p>
 <p>The ADC data coming from the Xbee are 10 bit numbers between 0 and 1024, where ideally 512 is equivalent to 0 volts/amps, but that is not always the case. After receiving the data and isolating the ADC values, which are what we care about, they need to be converted to volts and amps. To do so for both volts and amps, I first calculated the digital number which would correspond to zero, and subtracted that from each sample. Then using trial and error, I found a constant which I divided each value by (different for volts and amps). Then I used those samples to calculate the RMS voltage and current. To calculate apparent power I multiplied them, and to calculate real power, I multiplied each individual sample, and took the mean of that. I calculated a moving average for each of those to smooth out the data.
 </p>
 <p>Lastly, the Arduino sends strings to Cosm.com which include a PUT request header, and the actual data in .csv format.</p>
@@ -62,9 +62,14 @@ All the documentation and instructions for the original Tweet-a-Watt project can
 
 <img src="https://api.cosm.com/v2/feeds/68173/datastreams/Watts.png?width=730&height=250&colour=%230000FF&duration=30days&title=Watts&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
 
+<h3>For the future:</h3>
+<p>In the future I plan to add support for multiple transmitters, try to make the data more accurate, and also to write a program to download historical data from Cosm.com.</p>
+
 <h3>Credits:</h3>
 
 <p>I used the Arduino Ethernet, SPI, Software Serial, avr, and avr/wdt libraries. The hardware is based on the Tweet-a-Watt kit from <a href="adafruit.com">adafruit.com</a>. The code is  based on Lady Ada's python script but with some important modifications as explained above.</p>
+
+
 
 <h3>Contact:</h3>
 
