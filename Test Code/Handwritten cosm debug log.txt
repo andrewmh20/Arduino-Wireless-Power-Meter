@@ -1,0 +1,22 @@
+Feed live at 18:39z Friday
+
+Graph drop at 18:50:57z (only in current/va) not volts
+Dropouts with 400 errors
+
+
+1st  400 18:55:06Z All garbled
+400 19:09:11Z all garbled
+400 19:17:56Z "    "
+400 19:26:42Z	"    "
+400 19:35:27Z  "     "
+19:44:13Z
+
+
+Packet Loss has increased significantly by 19:55Z
+Program still runs fine on Serial. Packets that are lost are still sent to serial.
+Possible Wiznet issue????
+
+
+Check if pin 9 is set high anywhere
+
+See why packet loss increases over time
