@@ -20,3 +20,6 @@ Make sure to change the defines for APIKEY, FEEDID and USERAGENT to the ones spe
 Also, feel free to change the number for MOVING_AVERAGE_NUMBER if you want to take the moving average with more (or less) than  3 samples.
 
 At the beginning of the code, set the MAC address array to your Arduino's speccific MAc address, and set the IP that it defaults to if DHCP fails, to somehting comapatable with your local network.
+
+Additional Features:
+Included in comments is code for calculating the power factor. I was not able to get it accurate enough to be useful, and I provide no guarentee that the code currently in place, albeit commented out will work.
