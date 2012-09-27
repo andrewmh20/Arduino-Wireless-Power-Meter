@@ -51,17 +51,8 @@ All the documentation and instructions for the original Tweet-a-Watt project can
 <p>The ADC data coming from the Xbee are 10 bit numbers between 0 and 1024, where ideally 512 is equivalent to 0 volts/amps, but that is not always the case. After receiving the data and isolating the ADC values, which are what we care about, they need to be converted to volts and amps. To do so for both volts and amps, I first calculated the digital number which would correspond to zero, and subtracted that from each sample. Then using trial and error, I found a constant which I divided each value by (different for volts and amps). Then I used those samples to calculate the RMS voltage and current. To calculate apparent power I multiplied them, and to calculate real power, I multiplied each individual sample, and took the mean of that. I calculated a moving average for each of those to smooth out the data.
 </p>
 <p>Lastly, the Arduino sends strings to Cosm.com which include a PUT request header, and the actual data in .csv format.</p>
-<h3> Here are the real time graphs:</h3>
-<p> They can also be viewed in a lot of a nicer format at <a href="https://cosm.com/feeds/68173">https://cosm.com/feeds/68173</a>. To view the most recent data please refresh the web page. 
-</p>
-<img src="https://api.cosm.com/v2/feeds/68173/datastreams/CurrentRMS.png?width=730&height=250&colour=%230000FF%20%20&duration=30days&title=RMS%20Current&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
-
-<img src="https://api.cosm.com/v2/feeds/68173/datastreams/VoltsRMS.png?width=730&height=250&colour=%230000FF&duration=30days&title=RMS%20Volts&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
-
-<img src="https://api.cosm.com/v2/feeds/68173/datastreams/VoltageAmps.png?width=730&height=250&colour=%230000FF&duration=30days&title=Voltage%20Amps&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
-
-<img src="https://api.cosm.com/v2/feeds/68173/datastreams/Watts.png?width=730&height=250&colour=%230000FF&duration=30days&title=Watts&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=Eastern%20Time%20(US%20%26%20Canada)">
-
+<h3> The real time graphs can be viewed at <a href="https://cosm.com/feeds/68173">https://cosm.com/feeds/68173</a>. To view the most recent data please refresh the web page.:</h3>
+</h3>
 <h3>For the future:</h3>
 <p>In the future I plan to add support for multiple transmitters, try to make the data more accurate, calculate the checksum of the Xbee data, and also to write a program to download historical data from Cosm.com.</p>
 
