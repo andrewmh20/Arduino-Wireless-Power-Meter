@@ -50,7 +50,7 @@ byte mac[] = {
   0x90, 0xA2, 0xDA, 0x00, 0xF5, 0x88 }; //Define the Arduino MAC address for networking
 IPAddress ip(10,10,5,110); //Define the local IP address used by the Arduino if DHCP fails
 EthernetClient client; //Initialize the Ethernet library, designating the Arduino as a client
-IPAddress server(216,52,233,121); //Declare "server" as the IP address of the server the Arduino will be accessing, in this case api.cosm.com
+char server[] = "api.cosm.com";//Declare "server" as the IP address of the server the Arduino will be accessing, in this case api.cosm.com
 
 
 
