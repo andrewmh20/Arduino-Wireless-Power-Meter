@@ -34,10 +34,10 @@ At the beginning of the code, set the MAC address array to your Arduino's specif
 As of yet there is no support for multiple transmitters.
 Also, the checksum is not calculated.
 
-While building this I had specific difficulty getting the Xbees setup. I have found that it is often necessary to keep the Xbee out of its socket before uploading, and then when prompted place it in its socket. Also, you may need to just switch computers, and keep keep trying even if you don't know why it’s not working...
+While building this I had specific difficulty getting the Xbees setup. I have found that it is often necessary to keep the Xbee out of its socket before uploading, and then when prompted place it in its socket. Also, you may need to just switch computers, and keep keep trying even if you don't know why itï¿½s not working...
 
 Also, because of all the strings I was printing I found that I was running out of RAM on the ATMEGA328 so I put many of them in Flash memory. That may be the culprit if the whole thing seems to crash with the addition of one extra line.
 
 **Additional Features:**
 
-Included in comments is code for calculating the power factor. I was not able to get it accurate enough to be useful and I provide no guarantee that the code currently in place, albeit commented out, will work.
+Included in commented out code is code that calculates the power factor. I was not able to get it accurate enough to be useful and I provide no guarantee that the code currently in place, albeit commented out, will work.
