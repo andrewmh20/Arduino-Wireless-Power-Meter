@@ -6,7 +6,7 @@ If you wish to obtain a copy of my notebook taken during this process please ema
 
 This code is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported. This code and modifications must be attributed to "Andrew Merczynski-Hait". Please see the attached license file.
 
-With the understanding that the license limits certain activities on the part of the licensee and that without express permission from Andrew Merczynski-Hait the terms of the license may not be violated:
+With the understanding that the license limts certain activities on the part of the licensee and that without express permission from Andrew Merczynski-Hait the terms of the license may not be violated:
 
 1) If one wishes to modify the software without sharing it open-source, then I must grant explicit permission to do so, and **I may be very likely to do so, especially if I am aware of the modifications.**
 2) The full license text must be included in any distributions or modifications of this code.
@@ -34,7 +34,7 @@ At the beginning of the code, set the MAC address array to your Arduino's specif
 As of yet there is no support for multiple transmitters.
 Also, the checksum is not calculated.
 
-While building this I had specific difficulty getting the Xbees setup. I have found that it is often necessary to keep the Xbee out of its socket before uploading, and then when prompted place it in its socket. Also, you may need to just switch computers, and keep keep trying even if you don't know why it�s not working...
+While building this I had specific difficulty getting the Xbees setup. I have found that it is often necessary to keep the Xbee out of its socket before uploading, and then when prompted place it in its socket. Also, you may need to just switch computers, and keep keep trying even if you don't know why it's not working...
 
 Also, because of all the strings I was printing I found that I was running out of RAM on the ATMEGA328 so I put many of them in Flash memory. That may be the culprit if the whole thing seems to crash with the addition of one extra line.
 
